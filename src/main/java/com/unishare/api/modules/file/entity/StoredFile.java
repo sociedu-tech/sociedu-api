@@ -30,6 +30,12 @@ public class StoredFile {
     @Column(name = "file_url", nullable = false, columnDefinition = "TEXT")
     private String fileUrl;
 
+    @Column(name = "public_id", columnDefinition = "TEXT")
+    private String publicId;
+
+    @Column(name = "resource_type", length = 20)
+    private String resourceType;
+
     @Column(name = "mime_type", nullable = false)
     private String mimeType;
 

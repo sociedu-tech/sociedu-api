@@ -41,15 +41,21 @@ public class CatalogServiceImpl implements CatalogService {
     @Override
     @Transactional(readOnly = true)
     public Page<ServicePackageResponse> getMentorPackages(UUID mentorId, String keyword, Pageable pageable) {
-        return servicePackageRepository.searchActiveByMentorId(mentorId, normalizeKeyword(keyword), pageable)
-                .map(this::mapToCatalogPackageResponse);
+        String kw = normalizeKeyword(keyword);
+        Page<ServicePackage> page = (kw == null)
+                ? servicePackageRepository.findByMentorIdAndIsActiveTrueAndDeletedAtIsNull(mentorId, pageable)
+                : servicePackageRepository.searchActiveByMentorId(mentorId, kw, pageable);
+        return page.map(this::mapToCatalogPackageResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<ServicePackageResponse> getMyPackages(UUID mentorId, String keyword, Pageable pageable) {
-        return servicePackageRepository.searchByMentorId(mentorId, normalizeKeyword(keyword), pageable)
-                .map(this::mapToPackageResponse);
+        String kw = normalizeKeyword(keyword);
+        Page<ServicePackage> page = (kw == null)
+                ? servicePackageRepository.findByMentorId(mentorId, pageable)
+                : servicePackageRepository.searchByMentorId(mentorId, kw, pageable);
+        return page.map(this::mapToPackageResponse);
     }
 
     @Override
@@ -60,8 +66,16 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     public Page<ServicePackageResponse> getActivePackages(UUID mentorId, String keyword, Pageable pageable) {
-        return servicePackageRepository.searchActivePackages(mentorId, normalizeKeyword(keyword), pageable)
-                .map(this::mapToCatalogPackageResponse);
+        String kw = normalizeKeyword(keyword);
+        Page<ServicePackage> page;
+        if (kw == null && mentorId == null) {
+            page = servicePackageRepository.findByIsActiveTrueAndDeletedAtIsNull(pageable);
+        } else if (kw == null) {
+            page = servicePackageRepository.findByMentorIdAndIsActiveTrueAndDeletedAtIsNull(mentorId, pageable);
+        } else {
+            page = servicePackageRepository.searchActivePackages(mentorId, kw, pageable);
+        }
+        return page.map(this::mapToCatalogPackageResponse);
     }
 
     @Override
