@@ -29,6 +29,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -38,6 +42,31 @@ import java.util.UUID;
 public class MentorCatalogController {
 
     private final CatalogService catalogService;
+
+    // TODO(mentor-finance): thay placeholder bằng MentorStatsService thật khi feature ready.
+    @Operation(summary = "Thong ke tong quan mentor (placeholder)")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
+    @PreAuthorize("hasRole('MENTOR')")
+    @GetMapping("/me/stats")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getMyStats(
+            @AuthenticationPrincipal CustomUserPrincipal principal) {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("mentorId", principal.getUserId());
+        stats.put("totalStudents", 0);
+        stats.put("totalSessions", 0);
+        stats.put("totalRevenue", 0);
+        stats.put("ratingAvg", 0);
+        return ResponseEntity.ok(ApiResponse.<Map<String, Object>>build().withData(stats));
+    }
+
+    @Operation(summary = "Danh sach yeu cau rut tien (placeholder)")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
+    @PreAuthorize("hasRole('MENTOR')")
+    @GetMapping("/me/withdrawals")
+    public ResponseEntity<ApiResponse<List<Object>>> getMyWithdrawals(
+            @AuthenticationPrincipal CustomUserPrincipal principal) {
+        return ResponseEntity.ok(ApiResponse.<List<Object>>build().withData(Collections.emptyList()));
+    }
 
     @Operation(summary = "Goi dich vu dang mo cua mentor (loc: q ten/mo ta)")
     @PermitAll
