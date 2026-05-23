@@ -14,20 +14,24 @@ spring:
         options: "-c TimeZone=UTC"
 
   flyway:
-    enabled: ${FLYWAY_ENABLED:true}
+    enabled: ${FLYWAY_ENABLED:false} # dev: tắt vì đang dùng Hibernate ddl-auto. Bật lại khi sang Sprint hardening
     locations: classpath:db/migration
     baseline-on-migrate: true
 
   jpa:
     hibernate:
-      ddl-auto: update # validate
+      ddl-auto: ${HIBERNATE_DDL_AUTO:create-drop} # dev: wipe & recreate theo entity mỗi lần start. Override khi cần.
+    defer-datasource-initialization: true # đảm bảo data.sql/schema.sql ở classpath chạy SAU khi Hibernate dựng xong schema
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
         jdbc:
           time_zone: UTC
     show-sql: false
+
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:always} # luôn chạy schema.sql + data.sql trong classpath sau khi Hibernate khởi tạo
 
   mail:
     host: ${MAIL_HOST}
@@ -65,6 +69,9 @@ app:
       - "http://localhost:3001"
       - "http://127.0.0.1:3001"
       - "http://localhost:5174"
+      - "http://localhost:8081"
+      - "http://localhost:8082"
+      - "https://1g3l4zm9-9992.asse.devtunnels.ms"
       - "${APP_FRONTEND_BASE_URL}"
   logging:
     service-method-timing: false
@@ -92,7 +99,8 @@ vnpay:
   hash-secret: ${VNP_HASH_SECRET}
   url: ${VNP_URL}
   # Mặc định: callback BE sau thanh toán — nối từ app.urls.api-public-base (chỉnh một chỗ). Ghi đè: VNP_RETURN_URL
-  return-url: ${VNP_RETURN_URL:${app.urls.api-public-base}/payments/vnpay/return}
+  return-url: ${VNP_RETURN_URL:${app.urls.api-public-base}/api/v1/payments/vnpay/return}
+  frontend-return-url: ${VNP_FRONTEND_RETURN_URL:${app.urls.frontend-base}/payment-result}
 
 # OpenAPI / Swagger UI — tắt trên prod: springdoc.swagger-ui.enabled=false và springdoc.api-docs.enabled=false
 springdoc:
@@ -123,6 +131,12 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    defer-datasource-initialization: false
+  sql:
+    init:
+      mode: never
+  flyway:
+    enabled: true
 
 springdoc:
   api-docs:

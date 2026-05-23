@@ -28,15 +28,20 @@ CREATE TABLE role_capabilities
 
 CREATE TABLE users
 (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    email        VARCHAR(255),
-    phone_number VARCHAR(20),
+    email          VARCHAR(255) UNIQUE,
+    email_verified BOOLEAN          DEFAULT FALSE,
 
-    status       SMALLINT         DEFAULT 0, -- app define
+    phone_number   VARCHAR(20) UNIQUE,
+    phone_verified BOOLEAN          DEFAULT FALSE,
 
-    created_at   TIMESTAMP        DEFAULT NOW(),
-    updated_at   TIMESTAMP        DEFAULT NOW()
+    date_of_birth  DATE,
+
+    status         VARCHAR(32)      DEFAULT 'pending', -- pending | active | suspended
+
+    created_at     TIMESTAMP        DEFAULT NOW(),
+    updated_at     TIMESTAMP        DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users (email);
@@ -235,32 +240,34 @@ CREATE INDEX idx_mentor_profiles_verification ON mentor_profiles (verification_s
 CREATE TABLE service_packages
 (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- identity của "package logic"
-    package_group_id UUID NOT NULL,
-
-    mentor_id        UUID REFERENCES users (id),
-
-    name             VARCHAR(255),
-
-    -- versioning
-    version          INT  NOT NULL,
+    mentor_id        UUID         NOT NULL REFERENCES users (id),
+    name             VARCHAR(255) NOT NULL,
+    description      TEXT,
     is_active        BOOLEAN          DEFAULT TRUE,
-
-    -- business data
-    price            DECIMAL(19, 2),
-    duration         INT,
-
-    created_at       TIMESTAMP        DEFAULT NOW()
+    created_at       TIMESTAMP        DEFAULT NOW(),
+    updated_at       TIMESTAMP        DEFAULT NOW(),
+    deleted_at       TIMESTAMP
 );
 
-CREATE INDEX idx_package_group ON service_packages (package_group_id);
 CREATE INDEX idx_package_mentor ON service_packages (mentor_id);
+
+CREATE TABLE service_package_versions
+(
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    package_id    UUID           NOT NULL REFERENCES service_packages (id) ON DELETE CASCADE,
+    price         DECIMAL(19, 2) NOT NULL,
+    duration      INT            NOT NULL,
+    delivery_type VARCHAR(255),
+    is_default    BOOLEAN          DEFAULT TRUE,
+    created_at    TIMESTAMP        DEFAULT NOW()
+);
+
+CREATE INDEX idx_package_versions_package ON service_package_versions (package_id);
 
 CREATE TABLE package_curriculums
 (
     id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    package_id UUID         NOT NULL REFERENCES service_packages (id) ON DELETE CASCADE,
+    package_version_id UUID         NOT NULL REFERENCES service_package_versions (id) ON DELETE CASCADE,
     title              VARCHAR(255) NOT NULL,
     description        TEXT,
     order_index        INT          NOT NULL,
@@ -275,11 +282,12 @@ CREATE TABLE orders
 (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    buyer_id     UUID REFERENCES users (id),
-    service_id   UUID REFERENCES service_package_versions (id),
+    buyer_id     UUID           NOT NULL REFERENCES users (id),
+    service_id   UUID           NOT NULL REFERENCES service_package_versions (id),
 
-    status       SMALLINT,
-    total_amount DECIMAL(10, 2),
+    status       VARCHAR(50)    NOT NULL DEFAULT 'pending_payment',
+    total_amount DECIMAL(10, 2) NOT NULL,
+    paid_at      TIMESTAMP,
 
     created_at   TIMESTAMP        DEFAULT NOW()
 );
@@ -292,16 +300,23 @@ CREATE INDEX idx_orders_status ON orders (status);
 -- ==========================================
 CREATE TABLE payment_transactions
 (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    order_id   UUID REFERENCES orders (id) ON DELETE CASCADE,
-    amount     DECIMAL(19, 2),
+    order_id                UUID           NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+    provider                VARCHAR(50)    NOT NULL DEFAULT 'vnpay',
+    provider_transaction_id VARCHAR(255),
+    amount                  DECIMAL(19, 2) NOT NULL,
 
-    status     SMALLINT,
-    created_at TIMESTAMP        DEFAULT NOW()
+    status                  VARCHAR(50)    NOT NULL DEFAULT 'pending',
+    raw_response            JSONB,
+    created_at              TIMESTAMP        DEFAULT NOW()
 );
 
 CREATE INDEX idx_payment_order ON payment_transactions (order_id);
+CREATE INDEX idx_payment_provider_txn ON payment_transactions (provider_transaction_id);
+CREATE UNIQUE INDEX ux_payment_provider_txn
+    ON payment_transactions (provider_transaction_id)
+    WHERE provider_transaction_id IS NOT NULL;
 
 -- ==========================================
 -- BOOKING
@@ -311,12 +326,13 @@ CREATE TABLE bookings
     id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     order_id   UUID UNIQUE REFERENCES orders (id),
-    buyer_id   UUID REFERENCES users (id),
-    mentor_id  UUID REFERENCES users (id),
-    package_id UUID REFERENCES service_packages (id),
+    buyer_id   UUID        NOT NULL REFERENCES users (id),
+    mentor_id  UUID        NOT NULL REFERENCES users (id),
+    package_id UUID        NOT NULL REFERENCES service_packages (id),
 
-    status     SMALLINT,
-    created_at TIMESTAMP        DEFAULT NOW()
+    status     VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP        DEFAULT NOW(),
+    version    BIGINT      NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_booking_buyer ON bookings (buyer_id);
@@ -324,16 +340,54 @@ CREATE INDEX idx_booking_mentor ON bookings (mentor_id);
 
 CREATE TABLE booking_sessions
 (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-    booking_id   UUID REFERENCES bookings (id) ON DELETE CASCADE,
-    title        VARCHAR(255),
+    booking_id        UUID        NOT NULL REFERENCES bookings (id) ON DELETE CASCADE,
+    curriculum_id     UUID,
+    title             VARCHAR(255),
 
-    status       SMALLINT,
-    scheduled_at TIMESTAMP
+    status            VARCHAR(50) NOT NULL DEFAULT 'pending',
+    scheduled_at      TIMESTAMP,
+    completed_at      TIMESTAMP,
+    meeting_url       TEXT,
+    created_at        TIMESTAMP DEFAULT NOW(),
+    actual_started_at TIMESTAMP,
+    actual_ended_at   TIMESTAMP,
+    canceled_by       UUID,
+    canceled_at       TIMESTAMP,
+    cancel_reason     TEXT,
+    version           BIGINT      NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_session_booking ON booking_sessions (booking_id);
+
+CREATE TABLE booking_session_evidences
+(
+    id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_session_id UUID NOT NULL REFERENCES booking_sessions (id) ON DELETE CASCADE,
+    uploaded_by        UUID NOT NULL REFERENCES users (id),
+    file_id            UUID REFERENCES files (id),
+    description        VARCHAR(255),
+    created_at         TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_booking_session_evidence_session ON booking_session_evidences (booking_session_id);
+
+CREATE TABLE payout_records
+(
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_id      UUID           NOT NULL REFERENCES bookings (id),
+    mentor_id       UUID           NOT NULL REFERENCES users (id),
+    source_event_id UUID           NOT NULL,
+    amount          DECIMAL(19, 2) NOT NULL,
+    status          VARCHAR(255)   NOT NULL DEFAULT 'PENDING',
+    created_at      TIMESTAMP               DEFAULT NOW(),
+    updated_at      TIMESTAMP               DEFAULT NOW(),
+    version         BIGINT         NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX ux_payout_records_booking ON payout_records (booking_id);
+CREATE UNIQUE INDEX ux_payout_records_source_event ON payout_records (source_event_id);
 
 -- ==========================================
 -- MESSAGING

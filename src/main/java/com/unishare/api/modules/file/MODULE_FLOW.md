@@ -9,11 +9,16 @@ Hạ tầng lưu trữ dùng chung cho toàn bộ hệ thống — mọi upload/
 
 ## Core Flows
 
-**Upload file**: Module khác gọi FileService với file stream + metadata → validate mime_type và file_size → lưu vật lý lên `storage_provider` (S3/Cloudinary/local) → tạo bản ghi `files` → trả về `fileId` cho module gọi.
+**Upload file**:
+1. Validate ở tầng service: file không rỗng, kích thước ≤ `FileUploadConstraints.MAX_FILE_SIZE_BYTES` (25MB), `Content-Type` thuộc whitelist (`ALLOWED_MIME_TYPES`).
+2. Chuẩn hóa input: `folder` phải khớp `FOLDER_PATTERN` (fallback `uploads`), `visibility` chuẩn hóa về `public` | `private`, `fileName` strip path & cắt 255 ký tự.
+3. Upload lên storage TRƯỚC (ngoài transaction DB) → nhận `StoredFileLocation(url, publicId, resourceType)`.
+4. Lưu metadata trong transaction riêng qua `FileMetadataWriter` (Spring AOP proxy thực thụ).
+5. Nếu DB lỗi → compensate: gọi `storage.deleteByPublicId` để tránh orphan file trên provider.
 
-**Truy cập file**: GET request với `fileId` → kiểm tra `visibility` và quyền của người dùng → trả về URL trực tiếp hoặc presigned URL tùy Provider.
+**Truy cập file**: GET với `fileId` → repo `findByIdAndDeletedAtIsNull` → nếu không `public` thì yêu cầu đúng `uploader_id` → trả `FileUploadResponse`.
 
-**Xóa mềm**: Khi entity liên kết bị xóa → cập nhật `files.deleted_at` → background job định kỳ xóa file vật lý khỏi Provider sau grace period.
+**Xóa mềm**: Trong transaction, xác minh owner và set `deleted_at`. Sau khi commit, best-effort gọi `storage.deleteByPublicId(publicId, resourceType)` — log warn nếu provider trả false/ném exception, không làm hỏng transaction.
 
 ## Quan hệ Module
 - **Được gọi bởi**: `user` (avatar, certificate), `booking` (evidence), `chat` (attachment), `report` (evidence).

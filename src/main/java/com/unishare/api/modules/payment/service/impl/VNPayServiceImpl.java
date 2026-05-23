@@ -20,15 +20,21 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class VNPayServiceImpl implements PaymentService {
+
+    private static final ZoneId VNPAY_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter VNPAY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final ObjectMapper objectMapper;
@@ -85,7 +91,13 @@ public class VNPayServiceImpl implements PaymentService {
     @Override
     @Transactional
     public boolean handleVNPayCallback(Map<String, String> params) {
+        if (params == null || params.isEmpty()) {
+            throw new AppException(PaymentErrorCode.INVALID_CALLBACK, "Thiếu dữ liệu callback VNPay");
+        }
         String receivedHash = params.get("vnp_SecureHash");
+        if (receivedHash == null || receivedHash.isBlank()) {
+            throw new AppException(PaymentErrorCode.INVALID_SIGNATURE);
+        }
         Map<String, String> vnpParams = new TreeMap<>(params);
         vnpParams.remove("vnp_SecureHash");
         vnpParams.remove("vnp_SecureHashType");
@@ -103,9 +115,11 @@ public class VNPayServiceImpl implements PaymentService {
         PaymentTransaction txn = paymentTransactionRepository.findByProviderTransactionId(txnRef)
                 .orElseThrow(() -> new AppException(PaymentErrorCode.PAYMENT_NOT_FOUND));
 
+        validateCallbackMatchesTransaction(params, txn);
+
         if (!PaymentTransactionStatuses.PENDING.equals(txn.getStatus())) {
-            log.warn("VNPay callback: transaction {} already processed", txnRef);
-            throw new AppException(PaymentErrorCode.PAYMENT_ALREADY_PROCESSED);
+            log.info("VNPay callback: transaction {} already processed as {}", txnRef, txn.getStatus());
+            return PaymentTransactionStatuses.SUCCESS.equals(txn.getStatus());
         }
 
         txn.setStatus(success ? PaymentTransactionStatuses.SUCCESS : PaymentTransactionStatuses.FAILED);
@@ -138,18 +152,10 @@ public class VNPayServiceImpl implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public PaymentResponse getPaymentByOrderId(UUID orderId) {
-        PaymentTransaction txn = paymentTransactionRepository.findByOrderId(orderId).stream()
+        PaymentTransaction txn = paymentTransactionRepository.findByOrderIdOrderByCreatedAtDesc(orderId).stream()
                 .findFirst()
                 .orElseThrow(() -> new AppException(PaymentErrorCode.PAYMENT_NOT_FOUND));
-        PaymentResponse response = new PaymentResponse();
-        response.setId(txn.getId());
-        response.setOrderId(txn.getOrderId());
-        response.setProvider(txn.getProvider());
-        response.setTransactionRef(txn.getProviderTransactionId());
-        response.setAmount(txn.getAmount());
-        response.setStatus(txn.getStatus());
-        response.setCreatedAt(txn.getCreatedAt());
-        return response;
+        return toResponse(txn);
     }
 
     private String buildVNPayUrl(String txnRef, BigDecimal amount, String orderInfo, String ipAddress) {
@@ -157,7 +163,7 @@ public class VNPayServiceImpl implements PaymentService {
         vnpParams.put("vnp_Version", "2.1.0");
         vnpParams.put("vnp_Command", "pay");
         vnpParams.put("vnp_TmnCode", tmnCode);
-        vnpParams.put("vnp_Amount", String.valueOf(amount.multiply(BigDecimal.valueOf(100)).longValue()));
+        vnpParams.put("vnp_Amount", toVNPayAmount(amount));
         vnpParams.put("vnp_CurrCode", "VND");
         vnpParams.put("vnp_TxnRef", txnRef);
         vnpParams.put("vnp_OrderInfo", orderInfo);
@@ -165,7 +171,7 @@ public class VNPayServiceImpl implements PaymentService {
         vnpParams.put("vnp_Locale", "vn");
         vnpParams.put("vnp_ReturnUrl", returnUrl);
         vnpParams.put("vnp_IpAddr", ipAddress != null ? ipAddress : "127.0.0.1");
-        vnpParams.put("vnp_CreateDate", new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+        vnpParams.put("vnp_CreateDate", LocalDateTime.now(VNPAY_ZONE).format(VNPAY_DATE_FORMAT));
 
         String rawData = buildRawData(vnpParams);
         String secureHash = hmacSHA512(hashSecret, rawData);
@@ -177,6 +183,38 @@ public class VNPayServiceImpl implements PaymentService {
                 .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8)
                         + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
                 .collect(Collectors.joining("&"));
+    }
+
+    private void validateCallbackMatchesTransaction(Map<String, String> params, PaymentTransaction txn) {
+        String callbackTmnCode = params.get("vnp_TmnCode");
+        if (callbackTmnCode == null || !callbackTmnCode.equals(tmnCode)) {
+            throw new AppException(PaymentErrorCode.INVALID_CALLBACK, "Sai mã merchant VNPay");
+        }
+
+        String callbackAmount = params.get("vnp_Amount");
+        String expectedAmount = toVNPayAmount(txn.getAmount());
+        if (callbackAmount == null || !callbackAmount.equals(expectedAmount)) {
+            throw new AppException(PaymentErrorCode.INVALID_CALLBACK, "Số tiền callback VNPay không khớp");
+        }
+    }
+
+    private String toVNPayAmount(BigDecimal amount) {
+        return amount
+                .multiply(BigDecimal.valueOf(100))
+                .setScale(0, RoundingMode.UNNECESSARY)
+                .toPlainString();
+    }
+
+    private PaymentResponse toResponse(PaymentTransaction txn) {
+        PaymentResponse response = new PaymentResponse();
+        response.setId(txn.getId());
+        response.setOrderId(txn.getOrderId());
+        response.setProvider(txn.getProvider());
+        response.setTransactionRef(txn.getProviderTransactionId());
+        response.setAmount(txn.getAmount());
+        response.setStatus(txn.getStatus());
+        response.setCreatedAt(txn.getCreatedAt());
+        return response;
     }
 
     private String hmacSHA512(String key, String data) {
