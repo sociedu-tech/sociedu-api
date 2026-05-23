@@ -257,6 +257,103 @@ public class BookingServiceImpl implements BookingService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public BookingResponse cancelBooking(UUID bookingId, UUID actorUserId, CancelBookingRequest req) {
+        Booking b = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
+        assertAccess(b, actorUserId);
+
+        // Idempotent: if already canceled, return current state
+        if (BookingStatuses.CANCELED.equals(b.getStatus())) {
+            return toResponse(b);
+        }
+
+        // Validate transition
+        if (!BookingStatuses.PENDING.equals(b.getStatus())
+                && !BookingStatuses.SCHEDULED.equals(b.getStatus())
+                && !BookingStatuses.IN_PROGRESS.equals(b.getStatus())) {
+            throw new AppException(BookingErrorCode.BOOKING_CANNOT_CANCEL,
+                    "Booking cannot be canceled in current state: " + b.getStatus());
+        }
+
+        // Cancel all sessions that are not completed, not in_progress, and not already canceled
+        List<BookingSession> sessions = sessionRepository.findByBookingIdOrderByScheduledAtAsc(b.getId());
+        for (BookingSession s : sessions) {
+            if (SessionStatuses.COMPLETED.equals(s.getStatus())
+                    || SessionStatuses.CANCELED.equals(s.getStatus())
+                    || com.unishare.api.modules.booking.policy.SessionStatusTransitionPolicy.IN_PROGRESS.equals(s.getStatus())) {
+                continue;
+            }
+            s.setStatus(SessionStatuses.CANCELED);
+            s.setCanceledBy(actorUserId);
+            s.setCanceledAt(Instant.now());
+            s.setCancelReason(req.getReason());
+            sessionRepository.save(s);
+        }
+
+        // Cancel booking
+        b.setStatus(BookingStatuses.CANCELED);
+        bookingRepository.save(b);
+
+        eventPublisher.publish(new com.unishare.api.common.event.BookingCanceledEvent(
+                b.getId(), b.getOrderId(), actorUserId, req.getReason()));
+
+        return toResponse(b);
+    }
+
+    @Override
+    @Transactional
+    public BookingSessionResponse completeSession(UUID bookingId, UUID sessionId, UUID actorUserId) {
+        Booking b = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
+        assertAccess(b, actorUserId);
+
+        BookingSession s = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.SESSION_NOT_FOUND));
+        if (!s.getBookingId().equals(bookingId)) {
+            throw new AppException(BookingErrorCode.SESSION_NOT_FOUND);
+        }
+
+        // Idempotent: if already completed, return current state
+        if (SessionStatuses.COMPLETED.equals(s.getStatus())) {
+            return mapSession(s);
+        }
+
+        // Validate transition
+        try {
+            com.unishare.api.modules.booking.policy.SessionStatusTransitionPolicy.validateTransition(
+                    s.getStatus(), SessionStatuses.COMPLETED);
+        } catch (IllegalStateException e) {
+            throw new AppException(BookingErrorCode.INVALID_STATE_TRANSITION, e.getMessage());
+        }
+
+        // Validation: must have started (actualStartedAt not null)
+        if (s.getActualStartedAt() == null) {
+            throw new AppException(BookingErrorCode.INVALID_STATE_TRANSITION,
+                    "Session must be started (IN_PROGRESS) before completing.");
+        }
+
+        // Validation: min 15 minutes
+        if (s.getScheduledAt() != null) {
+            Instant minCompletionTime = s.getScheduledAt().plus(Duration.ofMinutes(15));
+            if (Instant.now().isBefore(minCompletionTime)) {
+                throw new AppException(BookingErrorCode.INVALID_STATE_TRANSITION,
+                        "Cannot complete session before minimum duration (15 minutes).");
+            }
+        }
+
+        s.setStatus(SessionStatuses.COMPLETED);
+        s.setActualEndedAt(Instant.now());
+        s.setCompletedAt(Instant.now());
+        sessionRepository.save(s);
+
+        // Auto-complete booking if all sessions are done
+        checkAndCompleteBooking(b);
+
+        return mapSession(s);
+    }
+
     private void assertAccess(Booking b, UUID userId) {
         if (!b.getBuyerId().equals(userId) && !b.getMentorId().equals(userId)) {
             throw new AppException(BookingErrorCode.BOOKING_ACCESS_DENIED);

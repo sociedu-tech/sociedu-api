@@ -12,6 +12,8 @@ import com.unishare.api.modules.service.entity.PackageCurriculum;
 import com.unishare.api.modules.service.entity.ServicePackage;
 import com.unishare.api.modules.service.entity.ServicePackageVersion;
 import com.unishare.api.modules.service.exception.ServiceErrorCode;
+import com.unishare.api.modules.order.repository.OrderRepository;
+import com.unishare.api.modules.service.dto.request.UpdateServicePackageVersionRequest;
 import com.unishare.api.modules.service.repository.PackageCurriculumRepository;
 import com.unishare.api.modules.service.repository.ServicePackageRepository;
 import com.unishare.api.modules.service.repository.ServicePackageVersionRepository;
@@ -37,6 +39,7 @@ public class CatalogServiceImpl implements CatalogService {
     private final ServicePackageRepository servicePackageRepository;
     private final ServicePackageVersionRepository servicePackageVersionRepository;
     private final PackageCurriculumRepository packageCurriculumRepository;
+    private final OrderRepository orderRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -321,6 +324,38 @@ public class CatalogServiceImpl implements CatalogService {
         packageCurriculumRepository.delete(curriculum);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ServicePackageVersionResponse> getActivePackageVersions(UUID packageId, Pageable pageable) {
+        ServicePackage pkg = servicePackageRepository.findActiveById(packageId)
+                .orElseThrow(() -> new AppException(ServiceErrorCode.PACKAGE_NOT_FOUND, "Package not found"));
+        return servicePackageVersionRepository.findByPackageId(pkg.getId(), pageable)
+                .map(this::mapToVersionResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ServicePackageVersionResponse getActivePackageVersion(UUID packageId, UUID versionId) {
+        ServicePackage pkg = servicePackageRepository.findActiveById(packageId)
+                .orElseThrow(() -> new AppException(ServiceErrorCode.PACKAGE_NOT_FOUND, "Package not found"));
+        ServicePackageVersion version = servicePackageVersionRepository.findById(versionId)
+                .filter(v -> v.getPackageId().equals(pkg.getId()))
+                .orElseThrow(() -> new AppException(ServiceErrorCode.SERVICE_VERSION_NOT_FOUND, "Version not found"));
+        return mapToVersionResponse(version);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CurriculumItemResponse> listActiveCurriculum(UUID packageId, UUID versionId, Pageable pageable) {
+        ServicePackage pkg = servicePackageRepository.findActiveById(packageId)
+                .orElseThrow(() -> new AppException(ServiceErrorCode.PACKAGE_NOT_FOUND, "Package not found"));
+        ServicePackageVersion version = servicePackageVersionRepository.findById(versionId)
+                .filter(v -> v.getPackageId().equals(pkg.getId()))
+                .orElseThrow(() -> new AppException(ServiceErrorCode.SERVICE_VERSION_NOT_FOUND, "Version not found"));
+        return packageCurriculumRepository.findByPackageVersionIdOrderByOrderIndexAsc(version.getId(), pageable)
+                .map(this::mapCurriculum);
+    }
+
     private ServicePackage requireOwnedPackage(UUID mentorId, UUID packageId) {
         return servicePackageRepository.findById(packageId)
                 .filter(p -> p.getMentorId().equals(mentorId))
@@ -405,5 +440,47 @@ public class CatalogServiceImpl implements CatalogService {
             throw new AppException(ServiceErrorCode.DUPLICATE_CURRICULUM_ORDER_INDEX,
                     "Thứ tự curriculum không được trùng nhau trong cùng một gói");
         }
+    }
+
+    @Override
+    @Transactional
+    public ServicePackageVersionResponse updatePackageVersion(UUID mentorId, UUID packageId, UUID versionId, UpdateServicePackageVersionRequest request) {
+        ServicePackageVersion version = requireOwnedVersionForMutation(mentorId, packageId, versionId);
+        if (request.getPrice() != null) version.setPrice(request.getPrice());
+        if (request.getDuration() != null) version.setDuration(request.getDuration());
+        if (request.getDeliveryType() != null) version.setDeliveryType(request.getDeliveryType());
+        ServicePackageVersion saved = servicePackageVersionRepository.save(version);
+        return mapToVersionResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deletePackageVersion(UUID mentorId, UUID packageId, UUID versionId) {
+        ServicePackageVersion version = requireOwnedVersionForMutation(mentorId, packageId, versionId);
+        if (Boolean.TRUE.equals(version.getIsDefault())) {
+            throw new AppException(ServiceErrorCode.CANNOT_DELETE_DEFAULT_VERSION, "Cannot delete default version. Set another version as default first.");
+        }
+        if (orderRepository.existsByServiceId(versionId)) {
+            throw new AppException(ServiceErrorCode.VERSION_HAS_ACTIVE_ORDERS, "Cannot delete version that has existing orders.");
+        }
+        long count = servicePackageVersionRepository.countByPackageId(packageId);
+        if (count <= 1) {
+            throw new AppException(ServiceErrorCode.PACKAGE_MUST_HAVE_VERSION, "Package must have at least one version.");
+        }
+        servicePackageVersionRepository.delete(version);
+    }
+
+    @Override
+    @Transactional
+    public ServicePackageVersionResponse setDefaultVersion(UUID mentorId, UUID packageId, UUID versionId) {
+        ServicePackageVersion version = requireOwnedVersionForMutation(mentorId, packageId, versionId);
+        // Unset all defaults for this package
+        List<ServicePackageVersion> allVersions = servicePackageVersionRepository.findByPackageId(packageId);
+        allVersions.forEach(v -> v.setIsDefault(false));
+        servicePackageVersionRepository.saveAll(allVersions);
+        // Set new default
+        version.setIsDefault(true);
+        ServicePackageVersion saved = servicePackageVersionRepository.save(version);
+        return mapToVersionResponse(saved);
     }
 }

@@ -8,7 +8,9 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum MentorErrorCode implements ExceptionCode {
     MENTOR_NOT_FOUND(404, "MENTOR_NOT_FOUND"),
-    INVALID_SEARCH_FILTER(400, "INVALID_SEARCH_FILTER");
+    INVALID_SEARCH_FILTER(400, "INVALID_SEARCH_FILTER"),
+    PROFILE_ALREADY_VERIFIED(400, "PROFILE_ALREADY_VERIFIED"),
+    PROFILE_INCOMPLETE(400, "PROFILE_INCOMPLETE");
 
     private final Integer code;
     private final String type;

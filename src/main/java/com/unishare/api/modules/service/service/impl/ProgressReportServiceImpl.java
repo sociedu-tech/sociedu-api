@@ -82,11 +82,29 @@ public class ProgressReportServiceImpl implements ProgressReportService {
                     "Mentor không thể phản hồi với trạng thái PENDING");
         }
 
+        if (report.getStatus() != ReportStatus.PENDING) {
+            throw new AppException(ProgressReportErrorCode.PROGRESS_REPORT_INVALID_STATE,
+                    "Báo cáo này đã được chấm hoặc xử lý.");
+        }
+
         report.setStatus(request.getStatus());
         report.setMentorFeedback(request.getMentorFeedback());
         ProgressReport saved = progressReportRepository.save(report);
 
         return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProgressReportResponse getReportById(UUID userId, UUID reportId) {
+        ProgressReport report = progressReportRepository.findById(reportId)
+                .orElseThrow(() -> new AppException(ProgressReportErrorCode.PROGRESS_REPORT_NOT_FOUND,
+                        "Không tìm thấy báo cáo này"));
+        if (!report.getMenteeId().equals(userId) && !report.getMentorId().equals(userId)) {
+            throw new AppException(ProgressReportErrorCode.PROGRESS_REPORT_ACCESS_DENIED,
+                    "Bạn không có quyền xem báo cáo này");
+        }
+        return mapToResponse(report);
     }
 
     private ProgressReportResponse mapToResponse(ProgressReport report) {

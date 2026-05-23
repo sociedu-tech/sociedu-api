@@ -15,4 +15,6 @@ public interface ServicePackageVersionRepository extends JpaRepository<ServicePa
     Page<ServicePackageVersion> findByPackageId(UUID packageId, Pageable pageable);
 
     Optional<ServicePackageVersion> findByPackageIdAndIsDefaultTrue(UUID packageId);
+
+    long countByPackageId(UUID packageId);
 }

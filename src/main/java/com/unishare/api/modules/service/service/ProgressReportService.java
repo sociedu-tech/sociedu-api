@@ -17,4 +17,6 @@ public interface ProgressReportService {
     Page<ProgressReportResponse> getMentorReports(UUID mentorId, Pageable pageable);
 
     ProgressReportResponse reviewReport(UUID mentorId, UUID reportId, ReviewReportRequest request);
+
+    ProgressReportResponse getReportById(UUID userId, UUID reportId);
 }

@@ -26,6 +26,24 @@ public class FileServiceImpl implements FileService {
     @Transactional
     public FileUploadResponse upload(UUID uploaderId, MultipartFile file, String folder, String visibility,
                                      String entityType, UUID entityId) {
+        // Validate max size: 10MB
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new AppException(FileErrorCode.FILE_SIZE_LIMIT_EXCEEDED, "File size exceeds maximum limit of 10MB");
+        }
+
+        // Validate extension whitelist
+        String filename = file.getOriginalFilename();
+        if (filename != null && !filename.isBlank()) {
+            int dotIdx = filename.lastIndexOf('.');
+            if (dotIdx > 0) {
+                String ext = filename.substring(dotIdx + 1).toLowerCase();
+                java.util.List<String> whitelist = java.util.List.of("jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "zip", "rar");
+                if (!whitelist.contains(ext)) {
+                    throw new AppException(FileErrorCode.INVALID_FILE_TYPE, "File type not allowed. Whitelist: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, zip, rar");
+                }
+            }
+        }
+
         String url = fileStorageService.uploadFile(file, folder != null ? folder : "uploads");
         StoredFile sf = new StoredFile();
         sf.setUploaderId(uploaderId);

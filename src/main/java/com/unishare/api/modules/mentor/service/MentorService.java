@@ -24,4 +24,6 @@ public interface MentorService {
             BigDecimal minBasePrice, BigDecimal maxBasePrice, Pageable pageable);
 
     boolean mentorProfileExists(UUID userId);
+
+    MentorResponse submitProfileVerification(UUID userId);
 }

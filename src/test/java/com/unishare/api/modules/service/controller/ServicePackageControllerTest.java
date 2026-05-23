@@ -178,16 +178,8 @@ class ServicePackageControllerTest {
 
         @Test
         void getPackageVersions_shouldDelegateToServiceAndReturnPagedVersions() {
-                UUID mentorId = UUID.randomUUID();
                 UUID packageId = UUID.randomUUID();
                 UUID versionId = UUID.randomUUID();
-                CustomUserPrincipal principal = new CustomUserPrincipal(
-                                mentorId,
-                                "mentor@example.com",
-                                "hashed",
-                                List.of("MENTOR"),
-                                List.of(),
-                                true);
                 PageRequest pageable = PageRequest.of(0, 5);
                 MentorDto.ServicePackageVersionResponse versionResponse = MentorDto.ServicePackageVersionResponse
                                 .builder()
@@ -198,12 +190,12 @@ class ServicePackageControllerTest {
                                 .isDefault(true)
                                 .build();
 
-                when(catalogService.getPackageVersions(eq(mentorId), eq(packageId), eq(pageable)))
+                when(catalogService.getActivePackageVersions(eq(packageId), eq(pageable)))
                                 .thenReturn(new PageImpl<>(List.of(versionResponse), pageable, 1));
 
                 ServicePackageController controller = new ServicePackageController(catalogService);
                 ResponseEntity<ApiResponse<Page<MentorDto.ServicePackageVersionResponse>>> result = controller
-                                .getPackageVersions(principal, packageId, pageable);
+                                .getPackageVersions(packageId, pageable);
 
                 assertEquals(200, result.getStatusCode().value());
                 assertEquals(1, result.getBody().getData().getTotalElements());
@@ -212,16 +204,8 @@ class ServicePackageControllerTest {
 
         @Test
         void getPackageVersion_shouldDelegateToServiceAndReturnVersionDetail() {
-                UUID mentorId = UUID.randomUUID();
                 UUID packageId = UUID.randomUUID();
                 UUID versionId = UUID.randomUUID();
-                CustomUserPrincipal principal = new CustomUserPrincipal(
-                                mentorId,
-                                "mentor@example.com",
-                                "hashed",
-                                List.of("MENTOR"),
-                                List.of(),
-                                true);
                 MentorDto.ServicePackageVersionResponse response = MentorDto.ServicePackageVersionResponse.builder()
                                 .id(versionId)
                                 .price(new java.math.BigDecimal("150.00"))
@@ -230,11 +214,11 @@ class ServicePackageControllerTest {
                                 .isDefault(true)
                                 .build();
 
-                when(catalogService.getPackageVersion(eq(mentorId), eq(packageId), eq(versionId))).thenReturn(response);
+                when(catalogService.getActivePackageVersion(eq(packageId), eq(versionId))).thenReturn(response);
 
                 ServicePackageController controller = new ServicePackageController(catalogService);
                 ResponseEntity<ApiResponse<MentorDto.ServicePackageVersionResponse>> result = controller
-                                .getPackageVersion(principal, packageId, versionId);
+                                .getPackageVersion(packageId, versionId);
 
                 assertEquals(200, result.getStatusCode().value());
                 assertEquals(versionId, result.getBody().getData().getId());
@@ -279,16 +263,8 @@ class ServicePackageControllerTest {
 
         @Test
         void getCurriculums_shouldDelegateToServiceAndReturnPagedCurriculums() {
-                UUID mentorId = UUID.randomUUID();
                 UUID packageId = UUID.randomUUID();
                 UUID versionId = UUID.randomUUID();
-                CustomUserPrincipal principal = new CustomUserPrincipal(
-                                mentorId,
-                                "mentor@example.com",
-                                "hashed",
-                                List.of("MENTOR"),
-                                List.of(),
-                                true);
                 PageRequest pageable = PageRequest.of(0, 5);
                 CurriculumItemResponse response = CurriculumItemResponse.builder()
                                 .id(UUID.randomUUID())
@@ -298,11 +274,11 @@ class ServicePackageControllerTest {
                                 .duration(60)
                                 .build();
 
-                when(catalogService.listCurriculum(eq(mentorId), eq(packageId), eq(versionId), eq(pageable)))
+                when(catalogService.listActiveCurriculum(eq(packageId), eq(versionId), eq(pageable)))
                                 .thenReturn(new PageImpl<>(List.of(response), pageable, 1));
 
                 ServicePackageController controller = new ServicePackageController(catalogService);
-                ResponseEntity<ApiResponse<Page<CurriculumItemResponse>>> result = controller.getCurriculums(principal,
+                ResponseEntity<ApiResponse<Page<CurriculumItemResponse>>> result = controller.getCurriculums(
                                 packageId, versionId, pageable);
 
                 assertEquals(200, result.getStatusCode().value());

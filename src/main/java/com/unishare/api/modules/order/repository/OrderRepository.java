@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByBuyerId(UUID buyerId);
+
+    boolean existsByServiceId(UUID serviceId);
 }
