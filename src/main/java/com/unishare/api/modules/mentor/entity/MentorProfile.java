@@ -40,10 +40,19 @@ public class MentorProfile {
     private BigDecimal basePrice;
 
     @Column(name = "rating_avg")
-    private Float ratingAvg = 0f;
+    private Double ratingAvg = 0.0;
 
     @Column(name = "sessions_completed")
     private Integer sessionsCompleted = 0;
+
+    @Column(name = "rating_count")
+    private Integer ratingCount = 0;
+
+    @Column(name = "rating_total")
+    private Long ratingTotal = 0L;
+
+    @Version
+    private Long version;
 
     @Column(name = "verification_status")
     private String verificationStatus = MentorVerificationStatuses.PENDING;

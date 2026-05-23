@@ -16,7 +16,7 @@ public class MentorResponse {
     private String headline;
     private String expertise;
     private BigDecimal basePrice;
-    private Float ratingAvg;
+    private Double ratingAvg;
     private Integer sessionsCompleted;
     private String verificationStatus;
 }

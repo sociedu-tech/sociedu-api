@@ -42,4 +42,15 @@ public interface MentorProfileRepository extends JpaRepository<MentorProfile, UU
                         @Param("minPrice") BigDecimal minPrice,
                         @Param("maxPrice") BigDecimal maxPrice,
                         Pageable pageable);
+
+        @org.springframework.data.jpa.repository.Modifying
+        @Query("UPDATE MentorProfile m SET m.ratingTotal = m.ratingTotal + :newRating, " +
+               "m.ratingCount = m.ratingCount + 1, " +
+               "m.ratingAvg = CAST(m.ratingTotal + :newRating AS double) / (m.ratingCount + 1) " +
+               "WHERE m.userId = :mentorId")
+        void updateRatingIncrementally(@Param("mentorId") UUID mentorId, @Param("newRating") int newRating);
+
+        @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT m FROM MentorProfile m WHERE m.userId = :userId")
+        java.util.Optional<MentorProfile> findAndLockByUserId(@Param("userId") UUID userId);
 }
