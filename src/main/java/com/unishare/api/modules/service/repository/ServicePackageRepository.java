@@ -18,6 +18,10 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
 
         Page<ServicePackage> findByMentorId(UUID mentorId, Pageable pageable);
 
+        Page<ServicePackage> findByMentorIdAndIsActiveTrueAndDeletedAtIsNull(UUID mentorId, Pageable pageable);
+
+        Page<ServicePackage> findByIsActiveTrueAndDeletedAtIsNull(Pageable pageable);
+
         @Query("""
                         SELECT p FROM ServicePackage p
                         WHERE p.id = :id

@@ -48,7 +48,7 @@ public class FileServiceImpl implements FileService {
             }
         }
 
-        String url = fileStorageService.uploadFile(file, folder != null ? folder : "uploads");
+        String url = fileStorageService.uploadFile(file, folder != null ? folder : "uploads").getUrl();
         StoredFile sf = new StoredFile();
         sf.setUploaderId(uploaderId);
         sf.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
