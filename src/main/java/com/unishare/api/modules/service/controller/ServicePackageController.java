@@ -10,6 +10,7 @@ import com.unishare.api.modules.service.dto.MentorDto.ServicePackageVersionRespo
 import com.unishare.api.modules.service.dto.request.CreateServicePackageRequest;
 import com.unishare.api.modules.service.dto.request.CreateServicePackageVersionRequest;
 import com.unishare.api.modules.service.dto.request.UpdateServicePackageRequest;
+import com.unishare.api.modules.service.dto.request.UpdateServicePackageVersionRequest;
 import com.unishare.api.modules.service.service.CatalogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -86,29 +88,64 @@ public class ServicePackageController {
                 .withMessage("Tao version goi dich vu thanh cong"));
     }
 
-    @Operation(summary = "Danh sach version cua goi dich vu")
-    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
-    @PreAuthorize("hasRole('MENTOR')")
+    @Operation(summary = "Danh sach version cua goi dich vu (public)")
     @GetMapping("/{id}/versions")
     public ResponseEntity<ApiResponse<Page<ServicePackageVersionResponse>>> getPackageVersions(
-            @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable("id") UUID id,
             Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.<Page<ServicePackageVersionResponse>>build()
-                .withData(catalogService.getPackageVersions(principal.getUserId(), id, pageable)));
+                .withData(catalogService.getActivePackageVersions(id, pageable)));
     }
 
-    @Operation(summary = "Chi tiet version cua goi dich vu")
-    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
-    @PreAuthorize("hasRole('MENTOR')")
+    @Operation(summary = "Chi tiet version cua goi dich vu (public)")
     @GetMapping("/{id}/versions/{versionId}")
     public ResponseEntity<ApiResponse<ServicePackageVersionResponse>> getPackageVersion(
+            @PathVariable("id") UUID id,
+            @PathVariable("versionId") UUID versionId) {
+        return ResponseEntity.ok(ApiResponse.<ServicePackageVersionResponse>build()
+                .withData(catalogService.getActivePackageVersion(id, versionId)));
+    }
+
+    @Operation(summary = "Cap nhat version cua goi dich vu")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
+    @PreAuthorize("hasRole('MENTOR')")
+    @PutMapping("/{id}/versions/{versionId}")
+    public ResponseEntity<ApiResponse<ServicePackageVersionResponse>> updatePackageVersion(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable("id") UUID id,
+            @PathVariable("versionId") UUID versionId,
+            @Valid @RequestBody UpdateServicePackageVersionRequest request) {
+        return ResponseEntity.ok(ApiResponse.<ServicePackageVersionResponse>build()
+                .withData(catalogService.updatePackageVersion(principal.getUserId(), id, versionId, request))
+                .withMessage("Cap nhat version thanh cong"));
+    }
+
+    @Operation(summary = "Xoa version cua goi dich vu")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
+    @PreAuthorize("hasRole('MENTOR')")
+    @DeleteMapping("/{id}/versions/{versionId}")
+    public ResponseEntity<ApiResponse<Void>> deletePackageVersion(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable("id") UUID id,
+            @PathVariable("versionId") UUID versionId) {
+        catalogService.deletePackageVersion(principal.getUserId(), id, versionId);
+        return ResponseEntity.ok(ApiResponse.<Void>build()
+                .withMessage("Xoa version thanh cong"));
+    }
+
+    @Operation(summary = "Dat version lam mac dinh")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
+    @PreAuthorize("hasRole('MENTOR')")
+    @PatchMapping("/{id}/versions/{versionId}/default")
+    public ResponseEntity<ApiResponse<ServicePackageVersionResponse>> setDefaultVersion(
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable("id") UUID id,
             @PathVariable("versionId") UUID versionId) {
         return ResponseEntity.ok(ApiResponse.<ServicePackageVersionResponse>build()
-                .withData(catalogService.getPackageVersion(principal.getUserId(), id, versionId)));
+                .withData(catalogService.setDefaultVersion(principal.getUserId(), id, versionId))
+                .withMessage("Dat version mac dinh thanh cong"));
     }
+
 
     @Operation(summary = "Them curriculum vao version cua goi dich vu")
     @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
@@ -124,17 +161,14 @@ public class ServicePackageController {
                 .withMessage("Tao curriculum thanh cong"));
     }
 
-    @Operation(summary = "Danh sach curriculum cua version goi dich vu")
-    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
-    @PreAuthorize("hasRole('MENTOR')")
+    @Operation(summary = "Danh sach curriculum cua version goi dich vu (public)")
     @GetMapping("/{id}/versions/{versionId}/curriculums")
     public ResponseEntity<ApiResponse<Page<CurriculumItemResponse>>> getCurriculums(
-            @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable("id") UUID id,
             @PathVariable("versionId") UUID versionId,
             Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.<Page<CurriculumItemResponse>>build()
-                .withData(catalogService.listCurriculum(principal.getUserId(), id, versionId, pageable)));
+                .withData(catalogService.listActiveCurriculum(id, versionId, pageable)));
     }
 
     @Operation(summary = "Cap nhat curriculum trong mot version cua goi dich vu")

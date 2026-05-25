@@ -208,6 +208,70 @@ class ProgressReportServiceImplTest {
         verify(progressReportRepository, never()).save(any());
     }
 
+    @Test
+    void reviewReport_whenReportNotPending_shouldThrowInvalidState() {
+        ProgressReport report = existingReport();
+        report.setStatus(ReportStatus.REVIEWED); // already reviewed
+        ReviewReportRequest request = new ReviewReportRequest();
+        request.setStatus(ReportStatus.REVIEWED);
+        request.setMentorFeedback("Good");
+
+        when(progressReportRepository.findById(reportId)).thenReturn(Optional.of(report));
+
+        AppException exception = assertThrows(AppException.class,
+                () -> progressReportService.reviewReport(mentorId, reportId, request));
+
+        assertSame(ProgressReportErrorCode.PROGRESS_REPORT_INVALID_STATE, exception.getExceptionCode());
+        verify(progressReportRepository, never()).save(any());
+    }
+
+    @Test
+    void getReportById_whenUserIsMentee_shouldReturnReport() {
+        ProgressReport report = existingReport();
+        when(progressReportRepository.findById(reportId)).thenReturn(Optional.of(report));
+        when(userService.getProfile(menteeId)).thenReturn(profile(menteeId, "Jane", "Doe"));
+        when(userService.getProfile(mentorId)).thenReturn(profile(mentorId, "John", "Mentor"));
+
+        ProgressReportResponse response = progressReportService.getReportById(menteeId, reportId);
+
+        assertEquals(reportId, response.getId());
+        assertEquals("Jane Doe", response.getMenteeName());
+        assertEquals("John Mentor", response.getMentorName());
+    }
+
+    @Test
+    void getReportById_whenUserIsMentor_shouldReturnReport() {
+        ProgressReport report = existingReport();
+        when(progressReportRepository.findById(reportId)).thenReturn(Optional.of(report));
+        when(userService.getProfile(menteeId)).thenReturn(profile(menteeId, "Jane", "Doe"));
+        when(userService.getProfile(mentorId)).thenReturn(profile(mentorId, "John", "Mentor"));
+
+        ProgressReportResponse response = progressReportService.getReportById(mentorId, reportId);
+
+        assertEquals(reportId, response.getId());
+    }
+
+    @Test
+    void getReportById_whenUserIsNeither_shouldThrowAccessDenied() {
+        ProgressReport report = existingReport();
+        when(progressReportRepository.findById(reportId)).thenReturn(Optional.of(report));
+
+        AppException exception = assertThrows(AppException.class,
+                () -> progressReportService.getReportById(UUID.randomUUID(), reportId));
+
+        assertSame(ProgressReportErrorCode.PROGRESS_REPORT_ACCESS_DENIED, exception.getExceptionCode());
+    }
+
+    @Test
+    void getReportById_whenReportNotFound_shouldThrowNotFound() {
+        when(progressReportRepository.findById(reportId)).thenReturn(Optional.empty());
+
+        AppException exception = assertThrows(AppException.class,
+                () -> progressReportService.getReportById(menteeId, reportId));
+
+        assertSame(ProgressReportErrorCode.PROGRESS_REPORT_NOT_FOUND, exception.getExceptionCode());
+    }
+
     private ProgressReport existingReport() {
         ProgressReport report = new ProgressReport();
         report.setId(reportId);

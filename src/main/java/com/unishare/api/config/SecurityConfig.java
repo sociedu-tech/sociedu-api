@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -75,7 +74,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/*/profile").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mentors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mentors/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mentors/*/reviews").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mentors/*/rating-summary").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mentors/*/packages").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/service-packages").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/service-packages/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(apiAuthenticationEntryPoint)

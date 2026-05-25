@@ -14,6 +14,8 @@ import com.unishare.api.modules.chat.repository.ConversationRepository;
 import com.unishare.api.modules.chat.repository.MessageAttachmentRepository;
 import com.unishare.api.modules.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +71,25 @@ public class ChatServiceImpl implements ChatService {
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId).stream()
                 .map(this::toMessageResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ChatMessageResponse> listMessages(UUID userId, UUID conversationId, Pageable pageable) {
+        assertParticipant(conversationId, userId);
+        return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable)
+                .map(this::toMessageResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ConversationResponse getConversation(UUID userId, UUID conversationId) {
+        Conversation c = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new AppException(ChatErrorCode.CONVERSATION_NOT_FOUND));
+        if (!participantRepository.isParticipant(conversationId, userId)) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
+        return toConvResponse(c);
     }
 
     @Override

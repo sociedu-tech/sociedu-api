@@ -28,7 +28,7 @@ public class FileController {
 
     @Operation(summary = "Upload file")
     @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPLOAD_ATTACHMENT)")
-    @PostMapping(consumes = "multipart/form-data")
+    @PostMapping(value = {"", "/upload"}, consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<FileUploadResponse>> upload(
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @RequestPart("file") MultipartFile file,

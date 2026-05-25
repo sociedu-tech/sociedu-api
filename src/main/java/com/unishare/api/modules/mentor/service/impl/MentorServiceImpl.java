@@ -77,6 +77,33 @@ public class MentorServiceImpl implements MentorService {
         return mentorProfileRepository.existsById(userId);
     }
 
+    @Override
+    @Transactional
+    public MentorResponse submitProfileVerification(UUID userId) {
+        MentorProfile profile = mentorProfileRepository.findById(userId)
+                .orElseThrow(() -> new AppException(MentorErrorCode.MENTOR_NOT_FOUND, "Mentor profile not found. Save profile details first."));
+
+        String status = profile.getVerificationStatus();
+        if (MentorVerificationStatuses.VERIFIED.equalsIgnoreCase(status)) {
+            throw new AppException(MentorErrorCode.PROFILE_ALREADY_VERIFIED, "Hồ sơ mentor đã được duyệt rồi.");
+        }
+
+        // Completeness validation
+        if (profile.getHeadline() == null || profile.getHeadline().isBlank()
+                || profile.getExpertise() == null || profile.getExpertise().isBlank()
+                || profile.getBasePrice() == null) {
+            throw new AppException(MentorErrorCode.PROFILE_INCOMPLETE, "Hồ sơ chưa hoàn thiện. Vui lòng cập nhật đầy đủ headline, chuyên môn và giá cơ bản.");
+        }
+
+        // Idempotency: only update status if it is not already pending
+        if (!MentorVerificationStatuses.PENDING.equalsIgnoreCase(status)) {
+            profile.setVerificationStatus(MentorVerificationStatuses.PENDING);
+            mentorProfileRepository.save(profile);
+        }
+
+        return mapToResponse(profile);
+    }
+
     private static String normalizeMentorKeyword(String raw) {
         if (raw == null || raw.isBlank()) {
             return null;

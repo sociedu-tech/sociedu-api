@@ -14,64 +14,59 @@ import java.util.UUID;
 
 @Repository
 public interface ServicePackageRepository extends JpaRepository<ServicePackage, UUID> {
-    List<ServicePackage> findByMentorId(UUID mentorId);
+        List<ServicePackage> findByMentorId(UUID mentorId);
 
-    Page<ServicePackage> findByMentorId(UUID mentorId, Pageable pageable);
+        Page<ServicePackage> findByMentorId(UUID mentorId, Pageable pageable);
 
-    /**
-     * Danh sách gói active (chưa archive) của 1 mentor — dùng khi `keyword == null`
-     * để tránh bind null param vào câu lệnh có {@code LOWER(?)} (PostgreSQL không có {@code lower(bytea)}).
-     */
-    Page<ServicePackage> findByMentorIdAndIsActiveTrueAndDeletedAtIsNull(UUID mentorId, Pageable pageable);
+        Page<ServicePackage> findByMentorIdAndIsActiveTrueAndDeletedAtIsNull(UUID mentorId, Pageable pageable);
 
-    /** Tất cả gói active (cho marketplace) khi không filter theo mentor và không có keyword. */
-    Page<ServicePackage> findByIsActiveTrueAndDeletedAtIsNull(Pageable pageable);
+        Page<ServicePackage> findByIsActiveTrueAndDeletedAtIsNull(Pageable pageable);
 
-    @Query("""
-            SELECT p FROM ServicePackage p
-            WHERE p.id = :id
-            AND p.isActive = true
-            AND p.deletedAt IS NULL
-            """)
-    Optional<ServicePackage> findActiveById(@Param("id") UUID id);
+        @Query("""
+                        SELECT p FROM ServicePackage p
+                        WHERE p.id = :id
+                        AND p.isActive = true
+                        AND p.deletedAt IS NULL
+                        """)
+        Optional<ServicePackage> findActiveById(@Param("id") UUID id);
 
-    @Query("""
-            SELECT p FROM ServicePackage p
-            WHERE p.isActive = true
-            AND p.deletedAt IS NULL
-            AND (:mentorId IS NULL OR p.mentorId = :mentorId)
-            AND (:keyword IS NULL
-                 OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            """)
-    Page<ServicePackage> searchActivePackages(
-            @Param("mentorId") UUID mentorId,
-            @Param("keyword") String keyword,
-            Pageable pageable);
+        @Query("""
+                        SELECT p FROM ServicePackage p
+                        WHERE p.isActive = true
+                        AND p.deletedAt IS NULL
+                        AND (:mentorId IS NULL OR p.mentorId = :mentorId)
+                        AND (CAST(:keyword AS String) IS NULL
+                             OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                             OR LOWER(CAST(p.description AS String)) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
+                        """)
+        Page<ServicePackage> searchActivePackages(
+                        @Param("mentorId") UUID mentorId,
+                        @Param("keyword") String keyword,
+                        Pageable pageable);
 
-    @Query("""
-            SELECT p FROM ServicePackage p
-            WHERE p.mentorId = :mentorId
-            AND p.isActive = true
-            AND p.deletedAt IS NULL
-            AND (:keyword IS NULL
-                 OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            """)
-    Page<ServicePackage> searchActiveByMentorId(
-            @Param("mentorId") UUID mentorId,
-            @Param("keyword") String keyword,
-            Pageable pageable);
+        @Query("""
+                        SELECT p FROM ServicePackage p
+                        WHERE p.mentorId = :mentorId
+                        AND p.isActive = true
+                        AND p.deletedAt IS NULL
+                        AND (CAST(:keyword AS String) IS NULL
+                             OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                             OR LOWER(CAST(p.description AS String)) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
+                        """)
+        Page<ServicePackage> searchActiveByMentorId(
+                        @Param("mentorId") UUID mentorId,
+                        @Param("keyword") String keyword,
+                        Pageable pageable);
 
-    @Query("""
-            SELECT p FROM ServicePackage p
-            WHERE p.mentorId = :mentorId
-            AND (:keyword IS NULL
-                 OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(COALESCE(p.description, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
-            """)
-    Page<ServicePackage> searchByMentorId(
-            @Param("mentorId") UUID mentorId,
-            @Param("keyword") String keyword,
-            Pageable pageable);
+        @Query("""
+                        SELECT p FROM ServicePackage p
+                        WHERE p.mentorId = :mentorId
+                        AND (CAST(:keyword AS String) IS NULL
+                             OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%'))
+                             OR LOWER(CAST(p.description AS String)) LIKE LOWER(CONCAT('%', CAST(:keyword AS String), '%')))
+                        """)
+        Page<ServicePackage> searchByMentorId(
+                        @Param("mentorId") UUID mentorId,
+                        @Param("keyword") String keyword,
+                        Pageable pageable);
 }

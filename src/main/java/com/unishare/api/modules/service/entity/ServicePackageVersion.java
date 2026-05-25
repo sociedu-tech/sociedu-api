@@ -41,4 +41,14 @@ public class ServicePackageVersion {
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
+
+    @jakarta.persistence.Version
+    private Long version;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

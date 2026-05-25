@@ -8,6 +8,7 @@ import com.unishare.api.modules.service.dto.MentorDto.ServicePackageVersionRespo
 import com.unishare.api.modules.service.dto.request.CreateServicePackageRequest;
 import com.unishare.api.modules.service.dto.request.CreateServicePackageVersionRequest;
 import com.unishare.api.modules.service.dto.request.UpdateServicePackageRequest;
+import com.unishare.api.modules.service.dto.request.UpdateServicePackageVersionRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -52,4 +53,19 @@ public interface CatalogService {
     void deleteCurriculumItem(UUID mentorId, UUID curriculumId);
 
     void deleteCurriculumItem(UUID mentorId, UUID packageId, UUID versionId, UUID curriculumId);
+
+    /** Public: danh sách versions của package active (không cần auth). */
+    Page<ServicePackageVersionResponse> getActivePackageVersions(UUID packageId, Pageable pageable);
+
+    /** Public: chi tiết version của package active (không cần auth). */
+    ServicePackageVersionResponse getActivePackageVersion(UUID packageId, UUID versionId);
+
+    /** Public: danh sách curriculum của version thuộc package active (không cần auth). */
+    Page<CurriculumItemResponse> listActiveCurriculum(UUID packageId, UUID versionId, Pageable pageable);
+
+    ServicePackageVersionResponse updatePackageVersion(UUID mentorId, UUID packageId, UUID versionId, UpdateServicePackageVersionRequest request);
+
+    void deletePackageVersion(UUID mentorId, UUID packageId, UUID versionId);
+
+    ServicePackageVersionResponse setDefaultVersion(UUID mentorId, UUID packageId, UUID versionId);
 }

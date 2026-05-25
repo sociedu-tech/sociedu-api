@@ -30,27 +30,36 @@ public class FileServiceImpl implements FileService {
     @Override
     public FileUploadResponse upload(UUID uploaderId, MultipartFile file, String folder, String visibility,
                                      String entityType, UUID entityId) {
-        validateFile(file);
-        String safeFolder = sanitizeFolder(folder);
-        String safeVisibility = FileVisibility.normalize(visibility);
-        String fileName = safeName(file.getOriginalFilename());
-
-        // 1) Upload lên storage TRƯỚC — chủ ý không bọc trong @Transactional để
-        //    không giữ connection DB trong lúc gọi network ra Cloudinary.
-        StoredFileLocation location = fileStorageService.uploadFile(file, safeFolder);
-
-        // 2) Ghi DB trong transaction riêng (FileMetadataWriter). Nếu DB lỗi -> compensate
-        //    bằng cách xóa object vừa upload, tránh "orphan file" trên storage.
-        try {
-            StoredFile saved = metadataWriter.insert(uploaderId, file, location, safeVisibility,
-                    entityType, entityId, fileName);
-            return toResponse(saved);
-        } catch (RuntimeException dbError) {
-            log.error("Persist file metadata failed, compensating by deleting storage object: publicId={}",
-                    location.getPublicId(), dbError);
-            safeDeleteFromStorage(location.getPublicId(), location.getResourceType());
-            throw dbError;
+        // Validate max size: 10MB
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new AppException(FileErrorCode.FILE_SIZE_LIMIT_EXCEEDED, "File size exceeds maximum limit of 10MB");
         }
+
+        // Validate extension whitelist
+        String filename = file.getOriginalFilename();
+        if (filename != null && !filename.isBlank()) {
+            int dotIdx = filename.lastIndexOf('.');
+            if (dotIdx > 0) {
+                String ext = filename.substring(dotIdx + 1).toLowerCase();
+                java.util.List<String> whitelist = java.util.List.of("jpg", "jpeg", "png", "gif", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "zip", "rar");
+                if (!whitelist.contains(ext)) {
+                    throw new AppException(FileErrorCode.INVALID_FILE_TYPE, "File type not allowed. Whitelist: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, zip, rar");
+                }
+            }
+        }
+
+        String url = fileStorageService.uploadFile(file, folder != null ? folder : "uploads").getUrl();
+        StoredFile sf = new StoredFile();
+        sf.setUploaderId(uploaderId);
+        sf.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
+        sf.setFileUrl(url);
+        sf.setMimeType(file.getContentType() != null ? file.getContentType() : "application/octet-stream");
+        sf.setFileSize(file.getSize());
+        sf.setVisibility(visibility != null ? visibility : FileVisibility.PRIVATE);
+        sf.setEntityType(entityType);
+        sf.setEntityId(entityId);
+        sf = storedFileRepository.save(sf);
+        return toResponse(sf);
     }
 
     @Override

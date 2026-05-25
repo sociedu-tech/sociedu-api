@@ -80,4 +80,28 @@ public class BookingController {
                                 .withData(bookingService.addEvidence(bookingId, sessionId, principal.getUserId(),
                                                 request)));
         }
+
+        @Operation(summary = "Hủy booking")
+        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_BOOKING)")
+        @PostMapping("/{bookingId}/cancel")
+        public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @Valid @RequestBody CancelBookingRequest request) {
+                return ResponseEntity.ok(ApiResponse.<BookingResponse>build()
+                                .withData(bookingService.cancelBooking(bookingId, principal.getUserId(), request))
+                                .withMessage("Huy booking thanh cong"));
+        }
+
+        @Operation(summary = "Hoàn thành buổi học")
+        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).MANAGE_SESSIONS)")
+        @PostMapping("/{bookingId}/sessions/{sessionId}/complete")
+        public ResponseEntity<ApiResponse<BookingSessionResponse>> completeSession(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @PathVariable("sessionId") UUID sessionId) {
+                return ResponseEntity.ok(ApiResponse.<BookingSessionResponse>build()
+                                .withData(bookingService.completeSession(bookingId, sessionId, principal.getUserId()))
+                                .withMessage("Hoan thanh buoi hoc thanh cong"));
+        }
 }
