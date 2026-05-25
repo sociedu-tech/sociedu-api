@@ -19,6 +19,7 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_IV_LENGTH = 12;
     private static final int GCM_TAG_LENGTH = 128;
+    private static final int GCM_TAG_LENGTH_BYTES = GCM_TAG_LENGTH / Byte.SIZE;
     private static final String DEFAULT_SECRET = "SocieDuBackendEncryptionKeyFallback2026";
 
     private final SecretKeySpec secretKey;
@@ -76,8 +77,8 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
         }
         try {
             byte[] combined = Base64.getDecoder().decode(dbData);
-            if (combined.length < GCM_IV_LENGTH) {
-                throw new IllegalArgumentException("Invalid encrypted data length");
+            if (combined.length < GCM_IV_LENGTH + GCM_TAG_LENGTH_BYTES) {
+                return dbData;
             }
 
             byte[] iv = new byte[GCM_IV_LENGTH];
@@ -93,6 +94,8 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
             byte[] decrypted = cipher.doFinal(ciphertext);
 
             return new String(decrypted, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return dbData;
         } catch (Exception e) {
             log.error("Error decrypting attribute", e);
             throw new RuntimeException("Decryption failed", e);

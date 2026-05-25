@@ -469,3 +469,191 @@ VALUES
     (gen_random_uuid(), '55555510-0000-0000-0000-000000000002', 'Architect test framework',                'Page object, custom command.',                           1, 90),
     (gen_random_uuid(), '55555510-0000-0000-0000-000000000002', 'Playwright multi-env',                    'Device, project, fixture pattern.',                      2, 90),
     (gen_random_uuid(), '55555510-0000-0000-0000-000000000002', 'Quality metrics & coaching',              'Flakiness, mean-time-to-detect.',                        3, 90);
+
+-- ==========================================
+-- ORDERS (ĐƠN HÀNG)
+-- ==========================================
+INSERT INTO orders (id, buyer_id, service_id, status, total_amount, paid_at, created_at)
+VALUES 
+    -- Order 1: user01 mua gói 1 của mentor01 (paid)
+    ('88888888-8888-4888-a888-888888880001', '11111111-1111-4111-8111-111111110001', '55555501-0000-0000-0000-000000000001', 'paid', 1500000.00, '2026-05-20 09:00:00', '2026-05-20 08:30:00'),
+    -- Order 2: user02 mua gói 2 của mentor01 (paid)
+    ('88888888-8888-4888-a888-888888880002', '11111111-1111-4111-8111-111111110002', '55555501-0000-0000-0000-000000000002', 'paid', 2500000.00, '2026-05-21 14:00:00', '2026-05-21 13:15:00'),
+    -- Order 3: user03 mua gói 1 của mentor02 (paid)
+    ('88888888-8888-4888-a888-888888880003', '11111111-1111-4111-8111-111111110003', '55555502-0000-0000-0000-000000000001', 'paid', 2000000.00, '2026-05-18 10:30:00', '2026-05-18 10:00:00'),
+    -- Order 4: user04 mua gói 2 của mentor02 (pending_payment)
+    ('88888888-8888-4888-a888-888888880004', '11111111-1111-4111-8111-111111110004', '55555502-0000-0000-0000-000000000002', 'pending_payment', 3000000.00, NULL, '2026-05-24 10:00:00'),
+    -- Order 5: user05 mua gói 1 của mentor03 (paid)
+    ('88888888-8888-4888-a888-888888880005', '11111111-1111-4111-8111-111111110005', '55555503-0000-0000-0000-000000000001', 'paid', 1800000.00, '2026-05-22 16:15:00', '2026-05-22 15:45:00'),
+    -- Order 6: user06 mua gói 2 của mentor03 (failed)
+    ('88888888-8888-4888-a888-888888880006', '11111111-1111-4111-8111-111111110006', '55555503-0000-0000-0000-000000000002', 'failed', 2800000.00, NULL, '2026-05-22 15:00:00'),
+    -- Order 7: user07 mua gói 1 của mentor04 (paid)
+    ('88888888-8888-4888-a888-888888880007', '11111111-1111-4111-8111-111111110007', '55555504-0000-0000-0000-000000000001', 'paid', 1600000.00, '2026-05-15 08:45:00', '2026-05-15 08:00:00'),
+    -- Order 8: user08 mua gói 2 của mentor05 (canceled)
+    ('88888888-8888-4888-a888-888888880008', '11111111-1111-4111-8111-111111110008', '55555505-0000-0000-0000-000000000002', 'canceled', 2700000.00, NULL, '2026-05-20 10:00:00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- PAYMENT TRANSACTIONS (GIAO DỊCH THANH TOÁN)
+-- ==========================================
+INSERT INTO payment_transactions (id, order_id, provider, provider_transaction_id, amount, status, created_at)
+VALUES
+    -- Giao dịch cho Order 1
+    ('99999999-9999-4999-b999-999999990001', '88888888-8888-4888-a888-888888880001', 'vnpay', 'VNPAY202605200001', 1500000.00, 'success', '2026-05-20 09:00:00'),
+    -- Giao dịch cho Order 2
+    ('99999999-9999-4999-b999-999999990002', '88888888-8888-4888-a888-888888880002', 'vnpay', 'VNPAY202605210002', 2500000.00, 'success', '2026-05-21 14:00:00'),
+    -- Giao dịch cho Order 3
+    ('99999999-9999-4999-b999-999999990003', '88888888-8888-4888-a888-888888880003', 'vnpay', 'VNPAY202605180003', 2000000.00, 'success', '2026-05-18 10:30:00'),
+    -- Giao dịch cho Order 5
+    ('99999999-9999-4999-b999-999999990005', '88888888-8888-4888-a888-888888880005', 'vnpay', 'VNPAY202605220005', 1800000.00, 'success', '2026-05-22 16:15:00'),
+    -- Giao dịch cho Order 6 (thất bại)
+    ('99999999-9999-4999-b999-999999990006', '88888888-8888-4888-a888-888888880006', 'vnpay', 'VNPAY202605220006', 2800000.00, 'failed', '2026-05-22 15:05:00'),
+    -- Giao dịch cho Order 7
+    ('99999999-9999-4999-b999-999999990007', '88888888-8888-4888-a888-888888880007', 'vnpay', 'VNPAY202605150007', 1600000.00, 'success', '2026-05-15 08:45:00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- BOOKINGS (ĐẶT LỊCH)
+-- ==========================================
+INSERT INTO bookings (id, order_id, buyer_id, mentor_id, package_id, status, created_at, version)
+VALUES
+    -- Booking 1: user01 học mentor01 (completed)
+    ('aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0001', '88888888-8888-4888-a888-888888880001', '11111111-1111-4111-8111-111111110001', '22222222-2222-4222-8222-222222220001', '44444401-0000-0000-0000-000000000001', 'completed', '2026-05-20 09:00:00', 1),
+    -- Booking 2: user02 học mentor01 (scheduled)
+    ('aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0002', '88888888-8888-4888-a888-888888880002', '11111111-1111-4111-8111-111111110002', '22222222-2222-4222-8222-222222220001', '44444401-0000-0000-0000-000000000002', 'scheduled', '2026-05-21 14:00:00', 1),
+    -- Booking 3: user03 học mentor02 (completed)
+    ('aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0003', '88888888-8888-4888-a888-888888880003', '11111111-1111-4111-8111-111111110003', '22222222-2222-4222-8222-222222220002', '44444402-0000-0000-0000-000000000001', 'completed', '2026-05-18 10:30:00', 1),
+    -- Booking 5: user05 học mentor03 (in_progress)
+    ('aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0005', '88888888-8888-4888-a888-888888880005', '11111111-1111-4111-8111-111111110005', '22222222-2222-4222-8222-222222220003', '44444403-0000-0000-0000-000000000001', 'in_progress', '2026-05-22 16:15:00', 1),
+    -- Booking 7: user07 học mentor04 (completed)
+    ('aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0007', '88888888-8888-4888-a888-888888880007', '11111111-1111-4111-8111-111111110007', '22222222-2222-4222-8222-222222220004', '44444404-0000-0000-0000-000000000001', 'completed', '2026-05-15 08:45:00', 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- BOOKING SESSIONS (CHI TIẾT BUỔI HỌC)
+-- ==========================================
+INSERT INTO booking_sessions (id, booking_id, curriculum_id, title, status, scheduled_at, completed_at, meeting_url, created_at, actual_started_at, actual_ended_at, version)
+VALUES
+    -- Booking 1 (completed) - 3 buổi hoàn thành
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0101', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0001', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555501-0000-0000-0000-000000000001' AND order_index = 1), 
+        'HTML/CSS nâng cao + Tailwind', 'completed', '2026-05-21 09:00:00', '2026-05-21 10:00:00', 'https://meet.google.com/abc-defg-hij', '2026-05-20 09:05:00', '2026-05-21 08:58:00', '2026-05-21 10:02:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0102', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0001', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555501-0000-0000-0000-000000000001' AND order_index = 2), 
+        'JavaScript ES2024 + TypeScript', 'completed', '2026-05-22 09:00:00', '2026-05-22 10:00:00', 'https://meet.google.com/abc-defg-hij', '2026-05-20 09:05:00', '2026-05-22 09:00:00', '2026-05-22 10:00:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0103', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0001', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555501-0000-0000-0000-000000000001' AND order_index = 3), 
+        'React + Next.js App Router', 'completed', '2026-05-23 09:00:00', '2026-05-23 10:00:00', 'https://meet.google.com/abc-defg-hij', '2026-05-20 09:05:00', '2026-05-23 08:59:00', '2026-05-23 10:01:00', 1),
+
+    -- Booking 2 (scheduled) - 1 buổi completed, 2 buổi scheduled
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0201', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0002', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555501-0000-0000-0000-000000000002' AND order_index = 1), 
+        'Kiến trúc Next.js App Router production', 'completed', '2026-05-24 14:00:00', '2026-05-24 15:30:00', 'https://meet.google.com/xyz-uvwx-yza', '2026-05-21 14:05:00', '2026-05-24 14:00:00', '2026-05-24 15:30:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0202', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0002', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555501-0000-0000-0000-000000000002' AND order_index = 2), 
+        'Tối ưu performance & SEO', 'scheduled', '2026-05-26 14:00:00', NULL, 'https://meet.google.com/xyz-uvwx-yza', '2026-05-21 14:05:00', NULL, NULL, 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0203', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0002', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555501-0000-0000-0000-000000000002' AND order_index = 3), 
+        'Mini-project & code review 1:1', 'scheduled', '2026-05-28 14:00:00', NULL, 'https://meet.google.com/xyz-uvwx-yza', '2026-05-21 14:05:00', NULL, NULL, 1),
+
+    -- Booking 3 (completed) - 3 buổi hoàn thành
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0301', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0003', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555502-0000-0000-0000-000000000001' AND order_index = 1), 
+        'Vai trò Product Manager', 'completed', '2026-05-19 10:00:00', '2026-05-19 11:00:00', 'https://meet.google.com/pqr-stuv-wxy', '2026-05-18 10:35:00', '2026-05-19 10:00:00', '2026-05-19 11:00:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0302', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0003', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555502-0000-0000-0000-000000000001' AND order_index = 2), 
+        'Discovery & Roadmap', 'completed', '2026-05-20 10:00:00', '2026-05-20 11:00:00', 'https://meet.google.com/pqr-stuv-wxy', '2026-05-18 10:35:00', '2026-05-20 10:00:00', '2026-05-20 11:00:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0303', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0003', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555502-0000-0000-0000-000000000001' AND order_index = 3), 
+        'Spec & Delivery', 'completed', '2026-05-21 10:00:00', '2026-05-21 11:00:00', 'https://meet.google.com/pqr-stuv-wxy', '2026-05-18 10:35:00', '2026-05-21 10:00:00', '2026-05-21 11:00:00', 1),
+
+    -- Booking 5 (in_progress) - 1 buổi completed, 2 buổi scheduled
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0501', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0005', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555503-0000-0000-0000-000000000001' AND order_index = 1), 
+        'Spring Boot cơ bản & cấu trúc dự án', 'completed', '2026-05-23 16:00:00', '2026-05-23 17:15:00', 'https://meet.google.com/mno-pqrs-tuv', '2026-05-22 16:20:00', '2026-05-23 16:00:00', '2026-05-23 17:15:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0502', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0005', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555503-0000-0000-0000-000000000001' AND order_index = 2), 
+        'JPA, REST API và validation', 'scheduled', '2026-05-26 16:00:00', NULL, 'https://meet.google.com/mno-pqrs-tuv', '2026-05-22 16:20:00', NULL, NULL, 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0503', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0005', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555503-0000-0000-0000-000000000001' AND order_index = 3), 
+        'Bảo mật & deploy', 'scheduled', '2026-05-29 16:00:00', NULL, 'https://meet.google.com/mno-pqrs-tuv', '2026-05-22 16:20:00', NULL, NULL, 1),
+
+    -- Booking 7 (completed) - 3 buổi hoàn thành
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0701', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0007', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555504-0000-0000-0000-000000000001' AND order_index = 1), 
+        'Design fundamentals', 'completed', '2026-05-16 09:00:00', '2026-05-16 10:00:00', 'https://meet.google.com/ghi-jklm-nop', '2026-05-15 08:50:00', '2026-05-16 09:00:00', '2026-05-16 10:00:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0702', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0007', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555504-0000-0000-0000-000000000001' AND order_index = 2), 
+        'Wireframe & user flow', 'completed', '2026-05-17 09:00:00', '2026-05-17 10:00:00', 'https://meet.google.com/ghi-jklm-nop', '2026-05-15 08:50:00', '2026-05-17 09:00:00', '2026-05-17 10:00:00', 1),
+    ('bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0703', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0007', 
+        (SELECT id FROM package_curriculums WHERE package_version_id = '55555504-0000-0000-0000-000000000001' AND order_index = 3), 
+        'Design system căn bản', 'completed', '2026-05-18 09:00:00', '2026-05-18 10:00:00', 'https://meet.google.com/ghi-jklm-nop', '2026-05-15 08:50:00', '2026-05-18 09:00:00', '2026-05-18 10:00:00', 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- PAYOUT RECORDS (GHI NHẬN DOANH THU MENTOR)
+-- ==========================================
+INSERT INTO payout_records (id, booking_id, mentor_id, source_event_id, amount, status, created_at, updated_at, version)
+VALUES
+    -- Record cho Booking 1 của mentor01 (1500000)
+    ('dddddddd-dddd-4ddd-fddd-dddddddd0001', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0001', '22222222-2222-4222-8222-222222220001', 'cccccccc-cccc-4ccc-eccc-cccccccc0001', 1500000.00, 'SUCCESS', '2026-05-23 10:00:00', '2026-05-23 10:00:00', 1),
+    -- Record cho Booking 3 của mentor02 (2000000)
+    ('dddddddd-dddd-4ddd-fddd-dddddddd0003', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0003', '22222222-2222-4222-8222-222222220002', 'cccccccc-cccc-4ccc-eccc-cccccccc0003', 2000000.00, 'SUCCESS', '2026-05-21 11:30:00', '2026-05-21 11:30:00', 1),
+    -- Record cho Booking 7 của mentor04 (1600000)
+    ('dddddddd-dddd-4ddd-fddd-dddddddd0007', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0007', '22222222-2222-4222-8222-222222220004', 'cccccccc-cccc-4ccc-eccc-cccccccc0007', 1600000.00, 'SUCCESS', '2026-05-18 10:30:00', '2026-05-18 10:30:00', 1)
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- PAYOUT REQUESTS (YÊU CẦU RÚT TIỀN MENTOR)
+-- ==========================================
+INSERT INTO payout_requests (id, mentor_id, gross_amount, platform_fee_rate, net_amount, status, bank_name, account_number, account_holder, reject_reason, failure_reason, transaction_reference, processed_by, version, created_at, updated_at, processed_at)
+VALUES
+    -- Request 1 của mentor01 (PAID) - gross=1000000, fee=10.00, net=900000
+    ('eeeeeeee-eeee-4eee-8eee-eeeeeeee0001', '22222222-2222-4222-8222-222222220001', 1000000.00, 10.00, 900000.00, 'PAID', 'Vietcombank', '9876543210', 'TRAN VAN LONG', NULL, NULL, 'TX-REF-0001', '33333333-3333-4333-8333-333333330004', 1, '2026-05-22 11:00:00', '2026-05-22 14:00:00', '2026-05-22 14:00:00'),
+    -- Request 2 của mentor01 (PENDING) - gross=500000, fee=10.00, net=450000
+    ('eeeeeeee-eeee-4eee-8eee-eeeeeeee0002', '22222222-2222-4222-8222-222222220001', 500000.00, 10.00, 450000.00, 'PENDING', 'Vietcombank', '9876543210', 'TRAN VAN LONG', NULL, NULL, NULL, NULL, 0, '2026-05-24 10:00:00', '2026-05-24 10:00:00', NULL),
+    -- Request 3 của mentor02 (PENDING) - gross=1500000, fee=10.00, net=1350000
+    ('eeeeeeee-eeee-4eee-8eee-eeeeeeee0003', '22222222-2222-4222-8222-222222220002', 1500000.00, 10.00, 1350000.00, 'PENDING', 'Techcombank', '1234567890', 'LE THI MAI', NULL, NULL, NULL, NULL, 0, '2026-05-24 15:30:00', '2026-05-24 15:30:00', NULL),
+    -- Request 4 của mentor03 (REJECTED)
+    ('eeeeeeee-eeee-4eee-8eee-eeeeeeee0004', '22222222-2222-4222-8222-222222220003', 1000000.00, 10.00, 900000.00, 'REJECTED', 'MB Bank', '111222333', 'NGUYEN HOANG NAM', 'Sai tên chủ tài khoản thụ hưởng', NULL, NULL, '33333333-3333-4333-8333-333333330004', 1, '2026-05-24 08:00:00', '2026-05-24 12:00:00', '2026-05-24 12:00:00'),
+    -- Request 5 của mentor04 (APPROVED)
+    ('eeeeeeee-eeee-4eee-8eee-eeeeeeee0005', '22222222-2222-4222-8222-222222220004', 1200000.00, 10.00, 1080000.00, 'APPROVED', 'BIDV', '444555666', 'PHAM QUYNH ANH', NULL, NULL, NULL, '33333333-3333-4333-8333-333333330004', 1, '2026-05-23 15:30:00', '2026-05-24 09:00:00', '2026-05-24 09:00:00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- BOOKING REVIEWS (ĐÁNH GIÁ MENTOR)
+-- ==========================================
+INSERT INTO booking_reviews (id, booking_id, mentor_id, package_id, reviewer_id, rating, comment, version, created_at, updated_at)
+VALUES
+    -- Đánh giá Booking 1
+    ('ffffffff-ffff-4fff-9fff-ffffffff0001', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0001', '22222222-2222-4222-8222-222222220001', '44444401-0000-0000-0000-000000000001', '11111111-1111-4111-8111-111111110001', 5, 'Mentor cực kỳ nhiệt tình, hướng dẫn Next.js App Router rất dễ hiểu và thực chiến!', 1, '2026-05-23 10:15:00', '2026-05-23 10:15:00'),
+    -- Đánh giá Booking 3
+    ('ffffffff-ffff-4fff-9fff-ffffffff0002', 'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0003', '22222222-2222-4222-8222-222222220002', '44444402-0000-0000-0000-000000000001', '11111111-1111-4111-8111-111111110003', 4, 'Gói học có lộ trình rõ ràng, mentor giúp mình hiểu sâu về PM.', 1, '2026-05-21 12:00:00', '2026-05-21 12:00:00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- PRE-COMPUTED STATS (THỐNG KÊ SẴN)
+-- ==========================================
+INSERT INTO user_stats (user_id, total_orders, total_spent, total_sessions, completed_sessions, updated_at)
+VALUES
+    ('11111111-1111-4111-8111-111111110001', 1, 1500000.00, 3, 3, NOW()),
+    ('11111111-1111-4111-8111-111111110002', 1, 2500000.00, 3, 1, NOW()),
+    ('11111111-1111-4111-8111-111111110003', 1, 2000000.00, 3, 3, NOW())
+ON CONFLICT (user_id) DO NOTHING;
+
+INSERT INTO mentor_stats (mentor_id, total_students, total_sessions, total_revenue, rating_avg, updated_at)
+VALUES
+    ('22222222-2222-4222-8222-222222220001', 2, 6, 4000000.00, 4.8, NOW()),
+    ('22222222-2222-4222-8222-222222220002', 1, 3, 2000000.00, 4.9, NOW())
+ON CONFLICT (mentor_id) DO NOTHING;
+
+INSERT INTO service_stats (package_id, total_orders, total_revenue, updated_at)
+VALUES
+    ('44444401-0000-0000-0000-000000000001', 1, 1500000.00, NOW()),
+    ('44444401-0000-0000-0000-000000000002', 1, 2500000.00, NOW())
+ON CONFLICT (package_id) DO NOTHING;
+
+INSERT INTO system_stats (date, new_users, active_users, total_orders, successful_orders, failed_orders, revenue, total_sessions, completed_sessions, new_mentors, created_at)
+VALUES
+    ('2026-05-25', 30, 8, 8, 5, 1, 9400000.00, 15, 11, 10, NOW())
+ON CONFLICT (date) DO NOTHING;
