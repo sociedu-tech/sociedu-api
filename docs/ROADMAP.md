@@ -187,3 +187,4 @@
 | [P2_TECHNICAL_HANDOVER.md](file:///d:/Projects/Sociedu/sociedu-api/P2_TECHNICAL_HANDOVER.md) | Tài liệu chuyển giao kỹ thuật P2 (chi tiết thiết kế) |
 | [PROJECT_RULES.md](file:///d:/Projects/Sociedu/sociedu-api/PROJECT_RULES.md) | Quy tắc coding standards |
 | [SECURITY.md](file:///d:/Projects/Sociedu/sociedu-api/SECURITY.md) | Tài liệu bảo mật |
+| [WEBSOCKET_CHAT_DOC.md](file:///d:/Projects/Sociedu/sociedu-api/docs/WEBSOCKET_CHAT_DOC.md) | Tài liệu tích hợp WebSocket Realtime Chat (Spring Boot + STOMP) |

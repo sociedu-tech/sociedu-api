@@ -16,9 +16,11 @@ import com.unishare.api.modules.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +35,7 @@ public class ChatServiceImpl implements ChatService {
     private final ConversationParticipantRepository participantRepository;
     private final ChatMessageRepository messageRepository;
     private final MessageAttachmentRepository attachmentRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -111,7 +114,15 @@ public class ChatServiceImpl implements ChatService {
                 attachmentRepository.save(a);
             }
         }
-        return toMessageResponse(m);
+        ChatMessageResponse response = toMessageResponse(m);
+        ChatEventEnvelope<ChatMessageResponse> envelope = ChatEventEnvelope.<ChatMessageResponse>builder()
+                .eventType("NEW_MESSAGE")
+                .conversationId(conversationId.toString())
+                .serverTimestamp(Instant.now())
+                .payload(response)
+                .build();
+        messagingTemplate.convertAndSend("/topic/conversations/" + conversationId, envelope);
+        return response;
     }
 
     private void assertParticipant(UUID conversationId, UUID userId) {
