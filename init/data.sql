@@ -314,123 +314,158 @@ VALUES
 
 -- ==========================================
 -- SERVICE PACKAGES (2 gói / mentor = 20)
--- package_group_id = id của bản version 1 (về sau version mới sẽ giữ chung group)
 -- ==========================================
-INSERT INTO service_packages (id, package_group_id, mentor_id, name, version, is_active, price, duration)
+INSERT INTO service_packages (id, mentor_id, name, is_active)
 VALUES
     -- M01 Frontend
-    ('44444401-0000-0000-0000-000000000001', '44444401-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220001', 'Lộ trình Frontend Junior 4 tuần',           1, TRUE, 1500000, 60),
-    ('44444401-0000-0000-0000-000000000002', '44444401-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220001', 'Mentor 1:1 Next.js & App Router 1 tháng',   1, TRUE, 2500000, 90),
+    ('44444401-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220001', 'Lộ trình Frontend Junior 4 tuần',           TRUE),
+    ('44444401-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220001', 'Mentor 1:1 Next.js & App Router 1 tháng',   TRUE),
     -- M02 Product
-    ('44444402-0000-0000-0000-000000000001', '44444402-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220002', 'Khởi đầu nghề Product Manager',             1, TRUE, 2000000, 60),
-    ('44444402-0000-0000-0000-000000000002', '44444402-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220002', 'Mentor 1:1 ra mắt SaaS MVP',                1, TRUE, 3000000, 90),
+    ('44444402-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220002', 'Khởi đầu nghề Product Manager',             TRUE),
+    ('44444402-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220002', 'Mentor 1:1 ra mắt SaaS MVP',                TRUE),
     -- M03 Backend
-    ('44444403-0000-0000-0000-000000000001', '44444403-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220003', 'Backend Java Spring Boot Bootcamp',         1, TRUE, 1800000, 75),
-    ('44444403-0000-0000-0000-000000000002', '44444403-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220003', 'Microservices thực chiến 1 tháng',          1, TRUE, 2800000, 90),
+    ('44444403-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220003', 'Backend Java Spring Boot Bootcamp',         TRUE),
+    ('44444403-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220003', 'Microservices thực chiến 1 tháng',          TRUE),
     -- M04 UI/UX
-    ('44444404-0000-0000-0000-000000000001', '44444404-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220004', 'UI/UX Fundamentals 4 tuần',                 1, TRUE, 1600000, 60),
-    ('44444404-0000-0000-0000-000000000002', '44444404-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220004', 'Portfolio Coaching cho Designer',           1, TRUE, 2200000, 90),
+    ('44444404-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220004', 'UI/UX Fundamentals 4 tuần',                 TRUE),
+    ('44444404-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220004', 'Portfolio Coaching cho Designer',           TRUE),
     -- M05 Data
-    ('44444405-0000-0000-0000-000000000001', '44444405-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220005', 'Data Engineering với Airflow',              1, TRUE, 2000000, 75),
-    ('44444405-0000-0000-0000-000000000002', '44444405-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220005', 'Spark Big Data thực chiến',                 1, TRUE, 2700000, 90),
+    ('44444405-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220005', 'Data Engineering với Airflow',              TRUE),
+    ('44444405-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220005', 'Spark Big Data thực chiến',                 TRUE),
     -- M06 Mobile
-    ('44444406-0000-0000-0000-000000000001', '44444406-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220006', 'Flutter App từ A-Z',                        1, TRUE, 1700000, 60),
-    ('44444406-0000-0000-0000-000000000002', '44444406-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220006', 'React Native 1:1 Mentor',                   1, TRUE, 2400000, 90),
+    ('44444406-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220006', 'Flutter App từ A-Z',                        TRUE),
+    ('44444406-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220006', 'React Native 1:1 Mentor',                   TRUE),
     -- M07 DevOps
-    ('44444407-0000-0000-0000-000000000001', '44444407-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220007', 'AWS Cloud Practitioner 30 ngày',            1, TRUE, 1900000, 60),
-    ('44444407-0000-0000-0000-000000000002', '44444407-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220007', 'Kubernetes thực chiến',                     1, TRUE, 2600000, 90),
+    ('44444407-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220007', 'AWS Cloud Practitioner 30 ngày',            TRUE),
+    ('44444407-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220007', 'Kubernetes thực chiến',                     TRUE),
     -- M08 Marketing
-    ('44444408-0000-0000-0000-000000000001', '44444408-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220008', 'Growth Marketing 101',                      1, TRUE, 1400000, 60),
-    ('44444408-0000-0000-0000-000000000002', '44444408-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220008', 'Performance Marketing Mentor',              1, TRUE, 2100000, 90),
+    ('44444408-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220008', 'Growth Marketing 101',                      TRUE),
+    ('44444408-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220008', 'Performance Marketing Mentor',              TRUE),
     -- M09 AI/ML
-    ('44444409-0000-0000-0000-000000000001', '44444409-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220009', 'Roadmap AI Engineer 2026',                  1, TRUE, 2300000, 75),
-    ('44444409-0000-0000-0000-000000000002', '44444409-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220009', 'LLM Fine-tune thực chiến',                  1, TRUE, 3200000, 90),
+    ('44444409-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220009', 'Roadmap AI Engineer 2026',                  TRUE),
+    ('44444409-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220009', 'LLM Fine-tune thực chiến',                  TRUE),
     -- M10 QA
-    ('44444410-0000-0000-0000-000000000001', '44444410-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220010', 'QA Automation với Cypress',                 1, TRUE, 1500000, 60),
-    ('44444410-0000-0000-0000-000000000002', '44444410-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220010', 'Test Architecture Coaching',                1, TRUE, 2300000, 90);
+    ('44444410-0000-0000-0000-000000000001', '22222222-2222-4222-8222-222222220010', 'QA Automation với Cypress',                 TRUE),
+    ('44444410-0000-0000-0000-000000000002', '22222222-2222-4222-8222-222222220010', 'Test Architecture Coaching',                TRUE);
+
+-- ==========================================
+-- SERVICE PACKAGE VERSIONS (1 version default per package = 20)
+-- ==========================================
+INSERT INTO service_package_versions (id, package_id, price, duration, is_default)
+VALUES
+    -- M01 Frontend
+    ('55555501-0000-0000-0000-000000000001', '44444401-0000-0000-0000-000000000001', 1500000, 60, TRUE),
+    ('55555501-0000-0000-0000-000000000002', '44444401-0000-0000-0000-000000000002', 2500000, 90, TRUE),
+    -- M02 Product
+    ('55555502-0000-0000-0000-000000000001', '44444402-0000-0000-0000-000000000001', 2000000, 60, TRUE),
+    ('55555502-0000-0000-0000-000000000002', '44444402-0000-0000-0000-000000000002', 3000000, 90, TRUE),
+    -- M03 Backend
+    ('55555503-0000-0000-0000-000000000001', '44444403-0000-0000-0000-000000000001', 1800000, 75, TRUE),
+    ('55555503-0000-0000-0000-000000000002', '44444403-0000-0000-0000-000000000002', 2800000, 90, TRUE),
+    -- M04 UI/UX
+    ('55555504-0000-0000-0000-000000000001', '44444404-0000-0000-0000-000000000001', 1600000, 60, TRUE),
+    ('55555504-0000-0000-0000-000000000002', '44444404-0000-0000-0000-000000000002', 2200000, 90, TRUE),
+    -- M05 Data
+    ('55555505-0000-0000-0000-000000000001', '44444405-0000-0000-0000-000000000001', 2000000, 75, TRUE),
+    ('55555505-0000-0000-0000-000000000002', '44444405-0000-0000-0000-000000000002', 2700000, 90, TRUE),
+    -- M06 Mobile
+    ('55555506-0000-0000-0000-000000000001', '44444406-0000-0000-0000-000000000001', 1700000, 60, TRUE),
+    ('55555506-0000-0000-0000-000000000002', '44444406-0000-0000-0000-000000000002', 2400000, 90, TRUE),
+    -- M07 DevOps
+    ('55555507-0000-0000-0000-000000000001', '44444407-0000-0000-0000-000000000001', 1900000, 60, TRUE),
+    ('55555507-0000-0000-0000-000000000002', '44444407-0000-0000-0000-000000000002', 2600000, 90, TRUE),
+    -- M08 Marketing
+    ('55555508-0000-0000-0000-000000000001', '44444408-0000-0000-0000-000000000001', 1400000, 60, TRUE),
+    ('55555508-0000-0000-0000-000000000002', '44444408-0000-0000-0000-000000000002', 2100000, 90, TRUE),
+    -- M09 AI/ML
+    ('55555509-0000-0000-0000-000000000001', '44444409-0000-0000-0000-000000000001', 2300000, 75, TRUE),
+    ('55555509-0000-0000-0000-000000000002', '44444409-0000-0000-0000-000000000002', 3200000, 90, TRUE),
+    -- M10 QA
+    ('55555510-0000-0000-0000-000000000001', '44444410-0000-0000-0000-000000000001', 1500000, 60, TRUE),
+    ('55555510-0000-0000-0000-000000000002', '44444410-0000-0000-0000-000000000002', 2300000, 90, TRUE);
 
 -- ==========================================
 -- PACKAGE CURRICULUMS (3 buổi / gói = 60 row)
 -- ==========================================
-INSERT INTO package_curriculums (package_id, title, description, order_index, duration)
+INSERT INTO package_curriculums (id, package_version_id, title, description, order_index, duration)
 VALUES
     -- M01 A
-    ('44444401-0000-0000-0000-000000000001', 'Tuần 1: HTML/CSS nâng cao + Tailwind',    'Layout phức tạp, responsive, animation cơ bản.',         1, 60),
-    ('44444401-0000-0000-0000-000000000001', 'Tuần 2: JavaScript ES2024 + TypeScript',  'Type system, generics, async, fetch.',                   2, 60),
-    ('44444401-0000-0000-0000-000000000001', 'Tuần 3: React + Next.js App Router',      'Hooks, server component, routing, data fetching.',       3, 60),
+    (gen_random_uuid(), '55555501-0000-0000-0000-000000000001', 'Tuần 1: HTML/CSS nâng cao + Tailwind',    'Layout phức tạp, responsive, animation cơ bản.',         1, 60),
+    (gen_random_uuid(), '55555501-0000-0000-0000-000000000001', 'Tuần 2: JavaScript ES2024 + TypeScript',  'Type system, generics, async, fetch.',                   2, 60),
+    (gen_random_uuid(), '55555501-0000-0000-0000-000000000001', 'Tuần 3: React + Next.js App Router',      'Hooks, server component, routing, data fetching.',       3, 60),
     -- M01 B
-    ('44444401-0000-0000-0000-000000000002', 'Kiến trúc Next.js App Router production', 'Layout, server actions, caching, edge runtime.',         1, 90),
-    ('44444401-0000-0000-0000-000000000002', 'Tối ưu performance & SEO',                'RSC, ISR, Web Vitals, Lighthouse.',                      2, 90),
-    ('44444401-0000-0000-0000-000000000002', 'Mini-project & code review 1:1',          'Build feature thật, review chi tiết.',                   3, 90),
+    (gen_random_uuid(), '55555501-0000-0000-0000-000000000002', 'Kiến trúc Next.js App Router production', 'Layout, server actions, caching, edge runtime.',         1, 90),
+    (gen_random_uuid(), '55555501-0000-0000-0000-000000000002', 'Tối ưu performance & SEO',                'RSC, ISR, Web Vitals, Lighthouse.',                      2, 90),
+    (gen_random_uuid(), '55555501-0000-0000-0000-000000000002', 'Mini-project & code review 1:1',          'Build feature thật, review chi tiết.',                   3, 90),
     -- M02 A
-    ('44444402-0000-0000-0000-000000000001', 'Vai trò Product Manager',                 'Trách nhiệm, OKR, KPI, làm việc với cross-team.',        1, 60),
-    ('44444402-0000-0000-0000-000000000001', 'Discovery & Roadmap',                     'Customer interview, JTBD, prioritization.',              2, 60),
-    ('44444402-0000-0000-0000-000000000001', 'Spec & Delivery',                         'PRD, ticket, release plan, metrics.',                    3, 60),
+    (gen_random_uuid(), '55555502-0000-0000-0000-000000000001', 'Vai trò Product Manager',                 'Trách nhiệm, OKR, KPI, làm việc với cross-team.',        1, 60),
+    (gen_random_uuid(), '55555502-0000-0000-0000-000000000001', 'Discovery & Roadmap',                     'Customer interview, JTBD, prioritization.',              2, 60),
+    (gen_random_uuid(), '55555502-0000-0000-0000-000000000001', 'Spec & Delivery',                         'PRD, ticket, release plan, metrics.',                    3, 60),
     -- M02 B
-    ('44444402-0000-0000-0000-000000000002', 'Tìm Product Market Fit',                  'Define ICP, problem-solution fit.',                      1, 90),
-    ('44444402-0000-0000-0000-000000000002', 'Xây MVP và đo lường',                     'Build vs buy, north star metric.',                       2, 90),
-    ('44444402-0000-0000-0000-000000000002', 'Go-to-market cho SaaS B2B',               'Pricing, sales funnel, retention loop.',                 3, 90),
+    (gen_random_uuid(), '55555502-0000-0000-0000-000000000002', 'Tìm Product Market Fit',                  'Define ICP, problem-solution fit.',                      1, 90),
+    (gen_random_uuid(), '55555502-0000-0000-0000-000000000002', 'Xây MVP và đo lường',                     'Build vs buy, north star metric.',                       2, 90),
+    (gen_random_uuid(), '55555502-0000-0000-0000-000000000002', 'Go-to-market cho SaaS B2B',               'Pricing, sales funnel, retention loop.',                 3, 90),
     -- M03 A
-    ('44444403-0000-0000-0000-000000000001', 'Spring Boot cơ bản & cấu trúc dự án',     'Bean, DI, profile, layered architecture.',               1, 75),
-    ('44444403-0000-0000-0000-000000000001', 'JPA, REST API và validation',             'Entity, repository, DTO mapping, exception.',            2, 75),
-    ('44444403-0000-0000-0000-000000000001', 'Bảo mật & deploy',                        'JWT, Spring Security, Docker compose.',                  3, 75),
+    (gen_random_uuid(), '55555503-0000-0000-0000-000000000001', 'Spring Boot cơ bản & cấu trúc dự án',     'Bean, DI, profile, layered architecture.',               1, 75),
+    (gen_random_uuid(), '55555503-0000-0000-0000-000000000001', 'JPA, REST API và validation',             'Entity, repository, DTO mapping, exception.',            2, 75),
+    (gen_random_uuid(), '55555503-0000-0000-0000-000000000001', 'Bảo mật & deploy',                        'JWT, Spring Security, Docker compose.',                  3, 75),
     -- M03 B
-    ('44444403-0000-0000-0000-000000000002', 'Tách monolith thành microservices',       'Bounded context, contract, event-driven.',               1, 90),
-    ('44444403-0000-0000-0000-000000000002', 'Kafka & saga pattern',                    'Producer, consumer, saga, outbox.',                      2, 90),
-    ('44444403-0000-0000-0000-000000000002', 'Observability & resilience',              'Tracing, retry, circuit breaker, k8s deploy.',           3, 90),
+    (gen_random_uuid(), '55555503-0000-0000-0000-000000000002', 'Tách monolith thành microservices',       'Bounded context, contract, event-driven.',               1, 90),
+    (gen_random_uuid(), '55555503-0000-0000-0000-000000000002', 'Kafka & saga pattern',                    'Producer, consumer, saga, outbox.',                      2, 90),
+    (gen_random_uuid(), '55555503-0000-0000-0000-000000000002', 'Observability & resilience',              'Tracing, retry, circuit breaker, k8s deploy.',           3, 90),
     -- M04 A
-    ('44444404-0000-0000-0000-000000000001', 'Design fundamentals',                     'Typography, color, layout, grid.',                       1, 60),
-    ('44444404-0000-0000-0000-000000000001', 'Wireframe & user flow',                   'Sketch, prototyping với Figma.',                         2, 60),
-    ('44444404-0000-0000-0000-000000000001', 'Design system căn bản',                   'Token, component, variant.',                             3, 60),
+    (gen_random_uuid(), '55555504-0000-0000-0000-000000000001', 'Design fundamentals',                     'Typography, color, layout, grid.',                       1, 60),
+    (gen_random_uuid(), '55555504-0000-0000-0000-000000000001', 'Wireframe & user flow',                   'Sketch, prototyping với Figma.',                         2, 60),
+    (gen_random_uuid(), '55555504-0000-0000-0000-000000000001', 'Design system căn bản',                   'Token, component, variant.',                             3, 60),
     -- M04 B
-    ('44444404-0000-0000-0000-000000000002', 'Phân tích portfolio hiện tại',            'Strengths, gap, ngách phù hợp.',                         1, 90),
-    ('44444404-0000-0000-0000-000000000002', 'Build case study chuẩn',                  'Cấu trúc, storytelling, visual.',                        2, 90),
-    ('44444404-0000-0000-0000-000000000002', 'Phỏng vấn & gửi hồ sơ',                   'Pitch, deck portfolio, mock interview.',                 3, 90),
+    (gen_random_uuid(), '55555504-0000-0000-0000-000000000002', 'Phân tích portfolio hiện tại',            'Strengths, gap, ngách phù hợp.',                         1, 90),
+    (gen_random_uuid(), '55555504-0000-0000-0000-000000000002', 'Build case study chuẩn',                  'Cấu trúc, storytelling, visual.',                        2, 90),
+    (gen_random_uuid(), '55555504-0000-0000-0000-000000000002', 'Phỏng vấn & gửi hồ sơ',                   'Pitch, deck portfolio, mock interview.',                 3, 90),
     -- M05 A
-    ('44444405-0000-0000-0000-000000000001', 'Airflow basics & DAG patterns',           'Sensor, operator, scheduling.',                          1, 75),
-    ('44444405-0000-0000-0000-000000000001', 'Data modeling cho warehouse',             'Dim/fact, slowly changing dimension.',                   2, 75),
-    ('44444405-0000-0000-0000-000000000001', 'Pipeline production grade',               'Monitoring, retry, alert, SLA.',                         3, 75),
+    (gen_random_uuid(), '55555505-0000-0000-0000-000000000001', 'Airflow basics & DAG patterns',           'Sensor, operator, scheduling.',                          1, 75),
+    (gen_random_uuid(), '55555505-0000-0000-0000-000000000001', 'Data modeling cho warehouse',             'Dim/fact, slowly changing dimension.',                   2, 75),
+    (gen_random_uuid(), '55555505-0000-0000-0000-000000000001', 'Pipeline production grade',               'Monitoring, retry, alert, SLA.',                         3, 75),
     -- M05 B
-    ('44444405-0000-0000-0000-000000000002', 'Spark fundamentals',                      'RDD vs DataFrame, partitioning.',                        1, 90),
-    ('44444405-0000-0000-0000-000000000002', 'Performance tuning Spark',                'Skew, shuffle, broadcast.',                              2, 90),
-    ('44444405-0000-0000-0000-000000000002', 'Streaming với Spark Structured',          'Watermark, state, sink Kafka.',                          3, 90),
+    (gen_random_uuid(), '55555505-0000-0000-0000-000000000002', 'Spark fundamentals',                      'RDD vs DataFrame, partitioning.',                        1, 90),
+    (gen_random_uuid(), '55555505-0000-0000-0000-000000000002', 'Performance tuning Spark',                'Skew, shuffle, broadcast.',                              2, 90),
+    (gen_random_uuid(), '55555505-0000-0000-0000-000000000002', 'Streaming với Spark Structured',          'Watermark, state, sink Kafka.',                          3, 90),
     -- M06 A
-    ('44444406-0000-0000-0000-000000000001', 'Flutter setup & widget cơ bản',           'Stateless/Stateful, hot reload, layout.',                1, 60),
-    ('44444406-0000-0000-0000-000000000001', 'State management Bloc/Riverpod',          'Reactive, dependency injection.',                        2, 60),
-    ('44444406-0000-0000-0000-000000000001', 'Build & publish app store',               'Sign, CI, release iOS/Android.',                         3, 60),
+    (gen_random_uuid(), '55555506-0000-0000-0000-000000000001', 'Flutter setup & widget cơ bản',           'Stateless/Stateful, hot reload, layout.',                1, 60),
+    (gen_random_uuid(), '55555506-0000-0000-0000-000000000001', 'State management Bloc/Riverpod',          'Reactive, dependency injection.',                        2, 60),
+    (gen_random_uuid(), '55555506-0000-0000-0000-000000000001', 'Build & publish app store',               'Sign, CI, release iOS/Android.',                         3, 60),
     -- M06 B
-    ('44444406-0000-0000-0000-000000000002', 'React Native architecture',               'Expo vs CLI, new architecture, fabric.',                 1, 90),
-    ('44444406-0000-0000-0000-000000000002', 'Performance & native module',             'Bridging, profiling.',                                   2, 90),
-    ('44444406-0000-0000-0000-000000000002', 'Publish & maintain',                      'OTA update, crash report, scale.',                       3, 90),
+    (gen_random_uuid(), '55555506-0000-0000-0000-000000000002', 'React Native architecture',               'Expo vs CLI, new architecture, fabric.',                 1, 90),
+    (gen_random_uuid(), '55555506-0000-0000-0000-000000000002', 'Performance & native module',             'Bridging, profiling.',                                   2, 90),
+    (gen_random_uuid(), '55555506-0000-0000-0000-000000000002', 'Publish & maintain',                      'OTA update, crash report, scale.',                       3, 90),
     -- M07 A
-    ('44444407-0000-0000-0000-000000000001', 'AWS core services overview',              'IAM, EC2, S3, RDS, VPC.',                                1, 60),
-    ('44444407-0000-0000-0000-000000000001', 'Networking & security',                   'VPC, security group, route table.',                      2, 60),
-    ('44444407-0000-0000-0000-000000000001', 'Deploy app lên AWS',                      'ECS Fargate, RDS, ALB.',                                 3, 60),
+    (gen_random_uuid(), '55555507-0000-0000-0000-000000000001', 'AWS core services overview',              'IAM, EC2, S3, RDS, VPC.',                                1, 60),
+    (gen_random_uuid(), '55555507-0000-0000-0000-000000000001', 'Networking & security',                   'VPC, security group, route table.',                      2, 60),
+    (gen_random_uuid(), '55555507-0000-0000-0000-000000000001', 'Deploy app lên AWS',                      'ECS Fargate, RDS, ALB.',                                 3, 60),
     -- M07 B
-    ('44444407-0000-0000-0000-000000000002', 'Kubernetes fundamentals',                 'Pod, deployment, service, ingress.',                     1, 90),
-    ('44444407-0000-0000-0000-000000000002', 'Helm & GitOps',                           'Helm chart, ArgoCD.',                                    2, 90),
-    ('44444407-0000-0000-0000-000000000002', 'Observability & scaling',                 'Prometheus, HPA, network policy.',                       3, 90),
+    (gen_random_uuid(), '55555507-0000-0000-0000-000000000002', 'Kubernetes fundamentals',                 'Pod, deployment, service, ingress.',                     1, 90),
+    (gen_random_uuid(), '55555507-0000-0000-0000-000000000002', 'Helm & GitOps',                           'Helm chart, ArgoCD.',                                    2, 90),
+    (gen_random_uuid(), '55555507-0000-0000-0000-000000000002', 'Observability & scaling',                 'Prometheus, HPA, network policy.',                       3, 90),
     -- M08 A
-    ('44444408-0000-0000-0000-000000000001', 'Funnel & metric',                         'AARRR, north star, dashboard.',                          1, 60),
-    ('44444408-0000-0000-0000-000000000001', 'Acquisition channels',                    'SEO, Ads, content, social.',                             2, 60),
-    ('44444408-0000-0000-0000-000000000001', 'Activation & retention',                  'Onboarding, lifecycle, email.',                          3, 60),
+    (gen_random_uuid(), '55555508-0000-0000-0000-000000000001', 'Funnel & metric',                         'AARRR, north star, dashboard.',                          1, 60),
+    (gen_random_uuid(), '55555508-0000-0000-0000-000000000001', 'Acquisition channels',                    'SEO, Ads, content, social.',                             2, 60),
+    (gen_random_uuid(), '55555508-0000-0000-0000-000000000001', 'Activation & retention',                  'Onboarding, lifecycle, email.',                          3, 60),
     -- M08 B
-    ('44444408-0000-0000-0000-000000000002', 'Cấu trúc campaign Google/Meta',           'Audience, creative, bidding.',                           1, 90),
-    ('44444408-0000-0000-0000-000000000002', 'Tối ưu CAC & ROAS',                       'A/B test creative, audit funnel.',                       2, 90),
-    ('44444408-0000-0000-0000-000000000002', 'Tự động hoá báo cáo',                     'Looker Studio, GA4, attribution.',                       3, 90),
+    (gen_random_uuid(), '55555508-0000-0000-0000-000000000002', 'Cấu trúc campaign Google/Meta',           'Audience, creative, bidding.',                           1, 90),
+    (gen_random_uuid(), '55555508-0000-0000-0000-000000000002', 'Tối ưu CAC & ROAS',                       'A/B test creative, audit funnel.',                       2, 90),
+    (gen_random_uuid(), '55555508-0000-0000-0000-000000000002', 'Tự động hoá báo cáo',                     'Looker Studio, GA4, attribution.',                       3, 90),
     -- M09 A
-    ('44444409-0000-0000-0000-000000000001', 'Toán & nền tảng ML',                      'Tuyến tính, xác suất, gradient.',                        1, 75),
-    ('44444409-0000-0000-0000-000000000001', 'Deep learning với PyTorch',               'Tensor, autograd, training loop.',                       2, 75),
-    ('44444409-0000-0000-0000-000000000001', 'MLOps cơ bản',                            'Tracking, deploy, monitoring.',                          3, 75),
+    (gen_random_uuid(), '55555509-0000-0000-0000-000000000001', 'Toán & nền tảng ML',                      'Tuyến tính, xác suất, gradient.',                        1, 75),
+    (gen_random_uuid(), '55555509-0000-0000-0000-000000000001', 'Deep learning với PyTorch',               'Tensor, autograd, training loop.',                       2, 75),
+    (gen_random_uuid(), '55555509-0000-0000-0000-000000000001', 'MLOps cơ bản',                            'Tracking, deploy, monitoring.',                          3, 75),
     -- M09 B
-    ('44444409-0000-0000-0000-000000000002', 'LoRA & PEFT cho LLM',                     'Fine-tune nhẹ, dataset chuẩn.',                          1, 90),
-    ('44444409-0000-0000-0000-000000000002', 'RAG pipeline production',                 'Vector DB, retriever, eval.',                            2, 90),
-    ('44444409-0000-0000-0000-000000000002', 'Deploy & cost optimization',              'Quantization, batching, GPU sizing.',                    3, 90),
+    (gen_random_uuid(), '55555509-0000-0000-0000-000000000002', 'LoRA & PEFT cho LLM',                     'Fine-tune nhẹ, dataset chuẩn.',                          1, 90),
+    (gen_random_uuid(), '55555509-0000-0000-0000-000000000002', 'RAG pipeline production',                 'Vector DB, retriever, eval.',                            2, 90),
+    (gen_random_uuid(), '55555509-0000-0000-0000-000000000002', 'Deploy & cost optimization',              'Quantization, batching, GPU sizing.',                    3, 90),
     -- M10 A
-    ('44444410-0000-0000-0000-000000000001', 'Test pyramid & strategy',                 'Unit/Integration/E2E balance.',                          1, 60),
-    ('44444410-0000-0000-0000-000000000001', 'Cypress E2E thực chiến',                  'Selector, fixture, network stub.',                       2, 60),
-    ('44444410-0000-0000-0000-000000000001', 'CI/CD cho automation',                    'GitHub Actions, parallel, report.',                      3, 60),
+    (gen_random_uuid(), '55555510-0000-0000-0000-000000000001', 'Test pyramid & strategy',                 'Unit/Integration/E2E balance.',                          1, 60),
+    (gen_random_uuid(), '55555510-0000-0000-0000-000000000001', 'Cypress E2E thực chiến',                  'Selector, fixture, network stub.',                       2, 60),
+    (gen_random_uuid(), '55555510-0000-0000-0000-000000000001', 'CI/CD cho automation',                    'GitHub Actions, parallel, report.',                      3, 60),
     -- M10 B
-    ('44444410-0000-0000-0000-000000000002', 'Architect test framework',                'Page object, custom command.',                           1, 90),
-    ('44444410-0000-0000-0000-000000000002', 'Playwright multi-env',                    'Device, project, fixture pattern.',                      2, 90),
-    ('44444410-0000-0000-0000-000000000002', 'Quality metrics & coaching',              'Flakiness, mean-time-to-detect.',                        3, 90);
+    (gen_random_uuid(), '55555510-0000-0000-0000-000000000002', 'Architect test framework',                'Page object, custom command.',                           1, 90),
+    (gen_random_uuid(), '55555510-0000-0000-0000-000000000002', 'Playwright multi-env',                    'Device, project, fixture pattern.',                      2, 90),
+    (gen_random_uuid(), '55555510-0000-0000-0000-000000000002', 'Quality metrics & coaching',              'Flakiness, mean-time-to-detect.',                        3, 90);
