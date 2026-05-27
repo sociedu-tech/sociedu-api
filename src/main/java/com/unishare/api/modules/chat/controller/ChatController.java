@@ -57,7 +57,7 @@ public class ChatController {
                 .withData(chatService.getConversation(principal.getUserId(), conversationId)));
     }
 
-    @Operation(summary = "Tin nhắn trong conversation (Không phân trang - Tương thích ngược)")
+    @Operation(summary = "Tin nhắn trong conversation (Không phân trang - Tương thích ngược)", deprecated = true)
     @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_CONVERSATION)")
     @GetMapping("/api/v1/chat/conversations/{conversationId}/messages")
     @Deprecated

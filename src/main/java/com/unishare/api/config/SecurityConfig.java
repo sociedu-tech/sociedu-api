@@ -59,7 +59,8 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/error",
 
-            "/actuator/health"
+            "/actuator/health",
+            "/ws/chat/**"
     };
 
     @Bean

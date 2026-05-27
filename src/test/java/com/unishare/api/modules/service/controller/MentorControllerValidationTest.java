@@ -34,7 +34,31 @@ class MentorControllerValidationTest {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
 
+        org.springframework.web.method.support.HandlerMethodArgumentResolver principalResolver = 
+            new org.springframework.web.method.support.HandlerMethodArgumentResolver() {
+                @Override
+                public boolean supportsParameter(org.springframework.core.MethodParameter parameter) {
+                    return parameter.getParameterType().equals(com.unishare.api.infrastructure.security.CustomUserPrincipal.class);
+                }
+
+                @Override
+                public Object resolveArgument(org.springframework.core.MethodParameter parameter, 
+                                               org.springframework.web.method.support.ModelAndViewContainer mavContainer,
+                                               org.springframework.web.context.request.NativeWebRequest webRequest, 
+                                               org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
+                    return new com.unishare.api.infrastructure.security.CustomUserPrincipal(
+                            java.util.UUID.randomUUID(),
+                            "user@gmail.com",
+                            "hashedpassword",
+                            java.util.List.of("MENTOR"),
+                            java.util.List.of(),
+                            true
+                    );
+                }
+            };
+
         mockMvc = MockMvcBuilders.standaloneSetup(new MentorCatalogController(catalogService))
+                .setCustomArgumentResolvers(principalResolver)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .build();

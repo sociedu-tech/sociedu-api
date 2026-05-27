@@ -48,11 +48,13 @@ public class FileServiceImpl implements FileService {
             }
         }
 
-        String url = fileStorageService.uploadFile(file, folder != null ? folder : "uploads").getUrl();
+        StoredFileLocation loc = fileStorageService.uploadFile(file, folder != null ? folder : "uploads");
         StoredFile sf = new StoredFile();
         sf.setUploaderId(uploaderId);
         sf.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
-        sf.setFileUrl(url);
+        sf.setFileUrl(loc.getUrl());
+        sf.setPublicId(loc.getPublicId());
+        sf.setResourceType(loc.getResourceType());
         sf.setMimeType(file.getContentType() != null ? file.getContentType() : "application/octet-stream");
         sf.setFileSize(file.getSize());
         sf.setVisibility(visibility != null ? visibility : FileVisibility.PRIVATE);

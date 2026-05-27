@@ -155,7 +155,7 @@ class CatalogServiceImplTest {
                 servicePackage.setIsActive(true);
 
                 PageRequest pageable = PageRequest.of(0, 5);
-                when(servicePackageRepository.searchActiveByMentorId(eq(mentorId), isNull(), eq(pageable)))
+                when(servicePackageRepository.findByMentorIdAndIsActiveTrueAndDeletedAtIsNull(eq(mentorId), eq(pageable)))
                                 .thenReturn(new PageImpl<>(List.of(servicePackage), pageable, 1));
                 when(servicePackageVersionRepository.findByPackageId(packageId)).thenReturn(List.of(savedVersion()));
                 when(packageCurriculumRepository.findByPackageVersionIdOrderByOrderIndexAsc(versionId))
@@ -189,7 +189,7 @@ class CatalogServiceImplTest {
                 inactivePackage.setIsActive(false);
 
                 PageRequest pageable = PageRequest.of(0, 5);
-                when(servicePackageRepository.searchByMentorId(eq(mentorId), isNull(), eq(pageable)))
+                when(servicePackageRepository.findByMentorId(eq(mentorId), eq(pageable)))
                                 .thenReturn(new PageImpl<>(List.of(activePackage, inactivePackage), pageable, 2));
                 when(servicePackageVersionRepository.findByPackageId(packageId)).thenReturn(List.of(savedVersion()));
                 when(packageCurriculumRepository.findByPackageVersionIdOrderByOrderIndexAsc(versionId))
@@ -291,7 +291,7 @@ class CatalogServiceImplTest {
                 servicePackage.setIsActive(true);
 
                 PageRequest pageable = PageRequest.of(0, 5);
-                when(servicePackageRepository.searchActivePackages(isNull(), isNull(), eq(pageable)))
+                when(servicePackageRepository.findByIsActiveTrueAndDeletedAtIsNull(eq(pageable)))
                                 .thenReturn(new PageImpl<>(List.of(servicePackage), pageable, 1));
                 when(servicePackageVersionRepository.findByPackageId(packageId)).thenReturn(List.of(savedVersion()));
                 when(packageCurriculumRepository.findByPackageVersionIdOrderByOrderIndexAsc(versionId))
@@ -621,7 +621,7 @@ class CatalogServiceImplTest {
                 archivedPackage.setDeletedAt(Instant.now());
 
                 PageRequest pageable = PageRequest.of(0, 5);
-                when(servicePackageRepository.searchByMentorId(eq(mentorId), isNull(), eq(pageable)))
+                when(servicePackageRepository.findByMentorId(eq(mentorId), eq(pageable)))
                                 .thenReturn(new PageImpl<>(List.of(archivedPackage), pageable, 1));
                 when(servicePackageVersionRepository.findByPackageId(packageId)).thenReturn(List.of(savedVersion()));
                 when(packageCurriculumRepository.findByPackageVersionIdOrderByOrderIndexAsc(versionId))
