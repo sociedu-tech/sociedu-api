@@ -1,6 +1,7 @@
 package com.unishare.api.modules.chat.service.impl;
 
 import com.unishare.api.common.dto.AppException;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.modules.chat.dto.*;
 import com.unishare.api.modules.chat.entity.ChatMessage;
 import com.unishare.api.modules.chat.entity.Conversation;
@@ -23,8 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,11 +64,25 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ConversationResponse> listMyConversations(UUID userId) {
-        List<UUID> ids = participantRepository.findConversationIdsByUserId(userId);
-        return conversationRepository.findAllById(ids).stream()
+    public PageResponse<ConversationResponse> listMyConversations(UUID userId, Pageable pageable) {
+        Page<ConversationParticipant> parts = participantRepository.findById_UserId(userId, pageable);
+        List<UUID> ids = parts.getContent().stream()
+                .map(p -> p.getId().getConversationId())
+                .toList();
+        Map<UUID, Conversation> byId = conversationRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Conversation::getId, Function.identity()));
+        List<ConversationResponse> items = ids.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
                 .map(this::toConvResponse)
-                .collect(Collectors.toList());
+                .toList();
+        return PageResponse.<ConversationResponse>builder()
+                .items(items)
+                .page(parts.getNumber())
+                .size(parts.getSize())
+                .total(parts.getTotalElements())
+                .totalPages(parts.getTotalPages())
+                .build();
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.unishare.api.modules.chat.controller;
 
 import com.unishare.api.common.dto.ApiResponse;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.config.OpenApiConfig;
 import com.unishare.api.infrastructure.security.CustomUserPrincipal;
 import com.unishare.api.modules.chat.dto.*;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,10 +43,11 @@ public class ChatController {
     @Operation(summary = "Danh sách conversation của tôi")
     @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_CONVERSATION)")
     @GetMapping(value = {"/api/v1/chat/conversations", "/api/v1/conversations"})
-    public ResponseEntity<ApiResponse<List<ConversationResponse>>> listConversations(
-            @AuthenticationPrincipal CustomUserPrincipal principal) {
-        return ResponseEntity.ok(ApiResponse.<List<ConversationResponse>>build()
-                .withData(chatService.listMyConversations(principal.getUserId())));
+    public ResponseEntity<ApiResponse<PageResponse<ConversationResponse>>> listConversations(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PageableDefault(size = 20, sort = "joinedAt") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ConversationResponse>>build()
+                .withData(chatService.listMyConversations(principal.getUserId(), pageable)));
     }
 
     @Operation(summary = "Lấy chi tiết conversation")

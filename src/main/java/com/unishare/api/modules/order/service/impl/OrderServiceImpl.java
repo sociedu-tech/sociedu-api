@@ -2,6 +2,7 @@ package com.unishare.api.modules.order.service.impl;
 
 import com.unishare.api.common.constants.OrderStatuses;
 import com.unishare.api.common.dto.AppException;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.common.event.OrderPaidEvent;
 import com.unishare.api.common.event.OrderPaymentFailedEvent;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
@@ -19,6 +20,7 @@ import com.unishare.api.modules.service.entity.ServicePackageVersion;
 import com.unishare.api.modules.service.service.CatalogReadService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,10 +54,8 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<OrderResponse> getMyOrders(UUID buyerId) {
-        return orderRepository.findByBuyerId(buyerId).stream()
-                .map(orderMapper::toResponse)
-                .collect(Collectors.toList());
+    public PageResponse<OrderResponse> getMyOrders(UUID buyerId, Pageable pageable) {
+        return PageResponse.of(orderRepository.findByBuyerId(buyerId, pageable).map(orderMapper::toResponse));
     }
 
     @Override

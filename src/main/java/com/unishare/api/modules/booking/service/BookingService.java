@@ -1,8 +1,9 @@
 package com.unishare.api.modules.booking.service;
 
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.modules.booking.dto.*;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface BookingService {
@@ -10,9 +11,9 @@ public interface BookingService {
     /** Gọi sau khi order chuyển paid — idempotent. */
     void ensureBookingForOrder(UUID orderId);
 
-    List<BookingResponse> listForBuyer(UUID buyerId);
+    PageResponse<BookingResponse> listForBuyer(UUID buyerId, Pageable pageable);
 
-    List<BookingResponse> listForMentor(UUID mentorId);
+    PageResponse<BookingResponse> listForMentor(UUID mentorId, Pageable pageable);
 
     BookingResponse getById(UUID bookingId, UUID userId);
 

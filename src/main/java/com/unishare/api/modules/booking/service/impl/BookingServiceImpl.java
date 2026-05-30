@@ -4,6 +4,7 @@ import com.unishare.api.common.constants.BookingStatuses;
 import com.unishare.api.common.constants.OrderStatuses;
 import com.unishare.api.common.constants.SessionStatuses;
 import com.unishare.api.common.dto.AppException;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.common.event.BookingCreatedEvent;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.modules.booking.dto.*;
@@ -21,6 +22,7 @@ import com.unishare.api.modules.order.service.OrderService;
 import com.unishare.api.modules.service.dto.PackageCurriculumSeedItem;
 import com.unishare.api.modules.service.service.CatalogReadService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,18 +83,14 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingResponse> listForBuyer(UUID buyerId) {
-        return bookingRepository.findByBuyerId(buyerId).stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public PageResponse<BookingResponse> listForBuyer(UUID buyerId, Pageable pageable) {
+        return PageResponse.of(bookingRepository.findByBuyerId(buyerId, pageable).map(this::toResponse));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookingResponse> listForMentor(UUID mentorId) {
-        return bookingRepository.findByMentorId(mentorId).stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public PageResponse<BookingResponse> listForMentor(UUID mentorId, Pageable pageable) {
+        return PageResponse.of(bookingRepository.findByMentorId(mentorId, pageable).map(this::toResponse));
     }
 
     @Override

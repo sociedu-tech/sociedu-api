@@ -1,13 +1,14 @@
 package com.unishare.api.modules.admin.service;
 
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.modules.admin.dto.AdminUserSummaryResponse;
+import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface AdminUserService {
 
-    List<AdminUserSummaryResponse> listUsers();
+    PageResponse<AdminUserSummaryResponse> listUsers(String role, String status, String q, Pageable pageable);
 
     AdminUserSummaryResponse updateUserRole(UUID userId, String roleName);
 

@@ -1,6 +1,7 @@
 package com.unishare.api.modules.trust.controller;
 
 import com.unishare.api.common.dto.ApiResponse;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.config.OpenApiConfig;
 import com.unishare.api.infrastructure.security.CustomUserPrincipal;
 import com.unishare.api.modules.trust.dto.*;
@@ -10,12 +11,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -41,10 +43,11 @@ public class ReportAliasController {
     @Operation(summary = "Báo cáo của tôi (Alias)")
     @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_OWN_REPORT)")
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<List<ModerationReportResponse>>> myReports(
-            @AuthenticationPrincipal CustomUserPrincipal principal) {
-        return ResponseEntity.ok(ApiResponse.<List<ModerationReportResponse>>build()
-                .withData(trustService.myReports(principal.getUserId())));
+    public ResponseEntity<ApiResponse<PageResponse<ModerationReportResponse>>> myReports(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<ModerationReportResponse>>build()
+                .withData(trustService.myReports(principal.getUserId(), pageable)));
     }
 
     @Operation(summary = "Thêm bằng chứng cho báo cáo (Alias)")

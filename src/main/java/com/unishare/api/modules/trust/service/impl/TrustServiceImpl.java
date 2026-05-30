@@ -3,6 +3,7 @@ package com.unishare.api.modules.trust.service.impl;
 import com.unishare.api.common.constants.DisputeStatuses;
 import com.unishare.api.common.constants.ReportStatuses;
 import com.unishare.api.common.dto.AppException;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.modules.trust.dto.*;
 import com.unishare.api.modules.trust.entity.Dispute;
 import com.unishare.api.modules.trust.entity.ModerationReport;
@@ -13,6 +14,7 @@ import com.unishare.api.modules.trust.repository.ModerationReportEvidenceReposit
 import com.unishare.api.modules.trust.repository.ModerationReportRepository;
 import com.unishare.api.modules.trust.service.TrustService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,10 +48,9 @@ public class TrustServiceImpl implements TrustService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ModerationReportResponse> myReports(UUID reporterId) {
-        return reportRepository.findByReporterIdOrderByCreatedAtDesc(reporterId).stream()
-                .map(this::toReportResponse)
-                .collect(Collectors.toList());
+    public PageResponse<ModerationReportResponse> myReports(UUID reporterId, Pageable pageable) {
+        return PageResponse.of(reportRepository.findByReporterIdOrderByCreatedAtDesc(reporterId, pageable)
+                .map(this::toReportResponse));
     }
 
     @Override
@@ -99,10 +100,9 @@ public class TrustServiceImpl implements TrustService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DisputeResponse> myDisputes(UUID userId) {
-        return disputeRepository.findByRaisedByOrderByCreatedAtDesc(userId).stream()
-                .map(this::toDisputeResponse)
-                .collect(Collectors.toList());
+    public PageResponse<DisputeResponse> myDisputes(UUID userId, Pageable pageable) {
+        return PageResponse.of(disputeRepository.findByRaisedByOrderByCreatedAtDesc(userId, pageable)
+                .map(this::toDisputeResponse));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.unishare.api.modules.booking.controller;
 
 import com.unishare.api.common.dto.ApiResponse;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.config.OpenApiConfig;
 import com.unishare.api.infrastructure.security.CustomUserPrincipal;
 import com.unishare.api.modules.booking.dto.*;
@@ -10,12 +11,13 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -30,19 +32,21 @@ public class BookingController {
         @Operation(summary = "Booking của tôi (mentee/buyer)")
         @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_BOOKING)")
         @GetMapping("/me/buyer")
-        public ResponseEntity<ApiResponse<List<BookingResponse>>> myBookingsAsBuyer(
-                        @AuthenticationPrincipal CustomUserPrincipal principal) {
-                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>build()
-                                .withData(bookingService.listForBuyer(principal.getUserId())));
+        public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> myBookingsAsBuyer(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+                return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>build()
+                                .withData(bookingService.listForBuyer(principal.getUserId(), pageable)));
         }
 
         @Operation(summary = "Booking của tôi (mentor)")
         @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_OWN_BOOKINGS)")
         @GetMapping("/me/mentor")
-        public ResponseEntity<ApiResponse<List<BookingResponse>>> myBookingsAsMentor(
-                        @AuthenticationPrincipal CustomUserPrincipal principal) {
-                return ResponseEntity.ok(ApiResponse.<List<BookingResponse>>build()
-                                .withData(bookingService.listForMentor(principal.getUserId())));
+        public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> myBookingsAsMentor(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+                return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>build()
+                                .withData(bookingService.listForMentor(principal.getUserId(), pageable)));
         }
 
         @Operation(summary = "Chi tiết booking")

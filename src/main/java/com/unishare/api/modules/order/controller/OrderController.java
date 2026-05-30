@@ -1,6 +1,7 @@
 package com.unishare.api.modules.order.controller;
 
 import com.unishare.api.common.dto.ApiResponse;
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.config.OpenApiConfig;
 import com.unishare.api.infrastructure.security.CustomUserPrincipal;
 import com.unishare.api.modules.order.dto.CheckoutRequest;
@@ -12,12 +13,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,10 +56,11 @@ public class OrderController {
     @Operation(summary = "Danh sách đơn của tôi")
     @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PAYMENT)")
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<List<OrderResponse>>> getMyOrders(
-            @AuthenticationPrincipal CustomUserPrincipal principal) {
-        return ResponseEntity.ok(ApiResponse.<List<OrderResponse>>build()
-                .withData(orderService.getMyOrders(principal.getUserId())));
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getMyOrders(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<OrderResponse>>build()
+                .withData(orderService.getMyOrders(principal.getUserId(), pageable)));
     }
 
     /**

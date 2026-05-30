@@ -1,5 +1,6 @@
 package com.unishare.api.modules.chat.service;
 
+import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.modules.chat.dto.*;
 
 import org.springframework.data.domain.Page;
@@ -12,7 +13,7 @@ public interface ChatService {
 
     ConversationResponse createConversation(UUID creatorUserId, CreateConversationRequest request);
 
-    List<ConversationResponse> listMyConversations(UUID userId);
+    PageResponse<ConversationResponse> listMyConversations(UUID userId, Pageable pageable);
 
     ConversationResponse getConversation(UUID userId, UUID conversationId);
 

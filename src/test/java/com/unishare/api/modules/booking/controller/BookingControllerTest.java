@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -82,7 +83,7 @@ class BookingControllerTest {
         };
 
         mockMvc = MockMvcBuilders.standaloneSetup(bookingController)
-                .setCustomArgumentResolvers(principalResolver)
+                .setCustomArgumentResolvers(principalResolver, new PageableHandlerMethodArgumentResolver())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -95,12 +96,20 @@ class BookingControllerTest {
                 .status(BookingStatuses.PENDING)
                 .build();
 
-        when(bookingService.listForBuyer(userId)).thenReturn(List.of(response));
+        com.unishare.api.common.dto.PageResponse<BookingResponse> page =
+                com.unishare.api.common.dto.PageResponse.<BookingResponse>builder()
+                        .items(List.of(response))
+                        .page(0)
+                        .size(20)
+                        .total(1)
+                        .totalPages(1)
+                        .build();
+        when(bookingService.listForBuyer(eq(userId), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/bookings/me/buyer"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].status").value(BookingStatuses.PENDING))
+                .andExpect(jsonPath("$.data.items[0].status").value(BookingStatuses.PENDING))
                 .andExpect(jsonPath("$.isSuccess").value(true));
     }
 

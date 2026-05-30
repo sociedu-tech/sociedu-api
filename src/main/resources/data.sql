@@ -534,3 +534,50 @@ VALUES
     ('2026-05-25', 30, 8, 8, 5, 1, 9400000.00, 15, 11, 10, NOW())
 ON CONFLICT (date) DO NOTHING;
 
+-- ==========================================
+-- MENTOR APPLICATIONS (đơn đăng ký mentor)
+-- ==========================================
+INSERT INTO mentor_requests (id, user_id, status, headline, bio, expertise, years_of_experience, hourly_rate, portfolio_urls, certificates, reason, note, reviewed_by, reviewed_at, resubmit_count, created_at, updated_at)
+VALUES
+    ('dddddddd-dddd-4ddd-addd-dddddddd0001', '11111111-1111-4111-8111-111111110006', 'SUBMITTED',
+     'Fresher Flutter muốn mentor mobile',
+     'Đã hoàn thành 2 app Flutter cá nhân, muốn hướng dẫn sinh viên.',
+     '["Flutter","Dart","Mobile"]', 2, 800000.00, '["https://github.com/tuankiet-demo"]', '[]',
+     NULL, NULL, NULL, NULL, 0, '2026-05-24 08:00:00', '2026-05-24 08:00:00'),
+    ('dddddddd-dddd-4ddd-addd-dddddddd0002', '11111111-1111-4111-8111-111111110009', 'SUBMITTED',
+     'AI/ML intern chuyển sang mentor',
+     'Từng thực tập ML tại lab đại học, có kinh nghiệm PyTorch cơ bản.',
+     '["PyTorch","Python","Machine Learning"]', 1, 900000.00, '[]', '[]',
+     NULL, NULL, NULL, NULL, 0, '2026-05-25 10:00:00', '2026-05-25 10:00:00'),
+    ('dddddddd-dddd-4ddd-addd-dddddddd0003', '11111111-1111-4111-8111-111111110004', 'REJECTED',
+     'Designer portfolio chưa đủ',
+     'Portfolio còn mỏng, cần bổ sung case study.',
+     '["Figma","UI/UX"]', 1, 700000.00, '[]', '[]',
+     'Hồ sơ chưa đủ minh chứng năng lực mentor.', 'Vui lòng bổ sung 3 case study trước khi nộp lại.',
+     '33333333-3333-4333-8333-333333330005', '2026-05-22 14:00:00', 1, '2026-05-20 09:00:00', '2026-05-22 14:00:00')
+ON CONFLICT (id) DO NOTHING;
+
+-- ==========================================
+-- MODERATION REPORTS & DISPUTES
+-- ==========================================
+INSERT INTO reports (id, reporter_id, reported_user_id, type, entity_id, reason, description, status, created_at)
+VALUES
+    ('99999999-9999-4999-a999-999999990001', '11111111-1111-4111-8111-111111110002', '22222222-2222-4222-8222-222222220001',
+     'mentor', '22222222-2222-4222-8222-222222220001', 'Hành vi không phù hợp',
+     'Mentor trả lời chậm và thiếu chuyên nghiệp trong buổi học thử.', 'open', '2026-05-23 11:00:00'),
+    ('99999999-9999-4999-a999-999999990002', '11111111-1111-4111-8111-111111110005', NULL,
+     'review', 'ffffffff-ffff-4fff-9fff-ffffffff0001', 'Spam / nội dung không liên quan',
+     'Đánh giá có dấu hiệu spam link ngoài.', 'under_review', '2026-05-24 09:30:00'),
+    ('99999999-9999-4999-a999-999999990003', '11111111-1111-4111-8111-111111110001', '22222222-2222-4222-8222-222222220003',
+     'session', 'bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0501', 'Tranh chấp sau buổi học',
+     'Học viên cho rằng mentor kết thúc sớm 15 phút so với lịch.', 'open', '2026-05-25 16:00:00')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO disputes (id, report_id, booking_id, session_id, raised_by, reason, description, status, created_at)
+VALUES
+    ('88888888-8888-4888-b888-888888880099', '99999999-9999-4999-a999-999999990003',
+     'aaaaaaaa-aaaa-4aaa-caaa-aaaaaaaa0005', 'bbbbbbbb-bbbb-4bbb-dbbb-bbbbbbbb0501',
+     '11111111-1111-4111-8111-111111110001', 'Kết thúc buổi sớm',
+     'Buổi học kết thúc lúc 16:45 trong khi lịch đến 17:00.', 'open', '2026-05-25 16:05:00')
+ON CONFLICT (id) DO NOTHING;
+

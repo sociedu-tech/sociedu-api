@@ -124,12 +124,20 @@ class ChatControllerTest {
                 .type("group")
                 .build();
 
-        when(chatService.listMyConversations(userId)).thenReturn(List.of(response));
+        com.unishare.api.common.dto.PageResponse<ConversationResponse> page =
+                com.unishare.api.common.dto.PageResponse.<ConversationResponse>builder()
+                        .items(List.of(response))
+                        .page(0)
+                        .size(20)
+                        .total(1)
+                        .totalPages(1)
+                        .build();
+        when(chatService.listMyConversations(eq(userId), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/conversations"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].type").value("group"));
+                .andExpect(jsonPath("$.data.items[0].type").value("group"));
 
         mockMvc.perform(get("/api/v1/chat/conversations"))
                 .andExpect(status().isOk());

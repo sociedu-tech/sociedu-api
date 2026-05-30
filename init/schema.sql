@@ -234,6 +234,32 @@ CREATE TABLE mentor_profiles
 
 CREATE INDEX idx_mentor_profiles_verification ON mentor_profiles (verification_status);
 
+CREATE TABLE mentor_requests
+(
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id               UUID        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    status                VARCHAR(32) NOT NULL DEFAULT 'SUBMITTED',
+    headline              TEXT,
+    bio                   TEXT,
+    expertise             JSONB,
+    years_of_experience   INT,
+    hourly_rate           DECIMAL(19, 2),
+    cv_file_id            UUID,
+    cv_url                TEXT,
+    portfolio_urls        JSONB,
+    certificates          JSONB,
+    reason                TEXT,
+    note                  TEXT,
+    reviewed_by           UUID REFERENCES users (id),
+    reviewed_at           TIMESTAMP,
+    resubmit_count        INT         NOT NULL DEFAULT 0,
+    created_at            TIMESTAMP   DEFAULT NOW(),
+    updated_at            TIMESTAMP   DEFAULT NOW()
+);
+
+CREATE INDEX idx_mentor_requests_user ON mentor_requests (user_id);
+CREATE INDEX idx_mentor_requests_status ON mentor_requests (status);
+
 -- ==========================================
 -- SERVICE
 -- ==========================================
