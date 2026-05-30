@@ -17,4 +17,6 @@ public class PaymentResponse {
     private String status;
     private Instant createdAt;
     private String paymentUrl;
+    /** true khi {@code vnpay.mock-enabled} — không redirect sang cổng VNPay thật. */
+    private Boolean mockPayment;
 }

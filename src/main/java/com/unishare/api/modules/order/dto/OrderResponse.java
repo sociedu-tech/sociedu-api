@@ -18,4 +18,6 @@ public class OrderResponse {
     private Instant createdAt;
 
     private String paymentUrl;
+    /** true khi thanh toán được mock (dev), client redirect thẳng tới payment-result. */
+    private Boolean mockPayment;
 }

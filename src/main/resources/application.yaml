@@ -99,6 +99,8 @@ vnpay:
   tmn-code: ${VNP_TMN_CODE}
   hash-secret: ${VNP_HASH_SECRET}
   url: ${VNP_URL}
+  # true: bỏ qua cổng VNPay, tự ghi nhận thanh toán thành công khi checkout (dev). Prod: VNP_MOCK_ENABLED=false
+  mock-enabled: ${VNP_MOCK_ENABLED:true}
   # Mặc định: callback BE sau thanh toán — nối từ app.urls.api-public-base (chỉnh một chỗ). Ghi đè: VNP_RETURN_URL
   return-url: ${VNP_RETURN_URL:${app.urls.api-public-base}/api/v1/payments/vnpay/return}
   frontend-return-url: ${VNP_FRONTEND_RETURN_URL:${app.urls.frontend-base}/payment-result}

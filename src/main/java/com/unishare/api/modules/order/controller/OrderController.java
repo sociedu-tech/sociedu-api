@@ -47,7 +47,7 @@ public class OrderController {
                 .orElse(http.getRemoteAddr());
         return ResponseEntity.ok(ApiResponse.<OrderResponse>build()
                 .withData(orderService.checkout(principal.getUserId(), request, ip))
-                .withMessage("Tạo đơn thành công — redirect tới paymentUrl để thanh toán"));
+                .withMessage("Tạo đơn thành công — mở paymentUrl (mock: thanh toán tự thành công)"));
     }
 
     /**

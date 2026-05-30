@@ -85,6 +85,7 @@ public class OrderServiceImpl implements OrderService {
 
         OrderResponse resp = orderMapper.toResponse(order);
         resp.setPaymentUrl(pay.getPaymentUrl());
+        resp.setMockPayment(pay.getMockPayment());
         return resp;
     }
 

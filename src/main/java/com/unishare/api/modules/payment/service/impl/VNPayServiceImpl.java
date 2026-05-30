@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -61,6 +62,12 @@ public class VNPayServiceImpl implements PaymentService {
     @Value("${vnpay.return-url}")
     private String returnUrl;
 
+    @Value("${vnpay.frontend-return-url}")
+    private String frontendReturnUrl;
+
+    @Value("${vnpay.mock-enabled:true}")
+    private boolean mockEnabled;
+
     @Override
     @Transactional
     public PaymentResponse createPayment(UUID orderId, BigDecimal amount, String orderInfo, String ipAddress) {
@@ -74,17 +81,22 @@ public class VNPayServiceImpl implements PaymentService {
         txn.setStatus(PaymentTransactionStatuses.PENDING);
         paymentTransactionRepository.save(txn);
 
-        String paymentUrl = buildVNPayUrl(txnRef, amount, orderInfo, ipAddress);
-
-        PaymentResponse response = new PaymentResponse();
-        response.setId(txn.getId());
-        response.setOrderId(orderId);
-        response.setProvider(PaymentProviders.VNPAY);
+        PaymentResponse response = toResponse(txn);
         response.setTransactionRef(txnRef);
         response.setAmount(amount);
+
+        if (mockEnabled) {
+            log.info("VNPay mock: auto-confirm payment for orderId={}, txnRef={}", orderId, txnRef);
+            finalizeSuccessfulPayment(txn, Map.of("mock", "true", "vnp_ResponseCode", "00", "vnp_TxnRef", txnRef));
+            response.setStatus(PaymentTransactionStatuses.SUCCESS);
+            response.setMockPayment(true);
+            response.setPaymentUrl(buildMockFrontendReturnUrl(orderId, txnRef));
+            return response;
+        }
+
         response.setStatus(PaymentTransactionStatuses.PENDING);
-        response.setCreatedAt(txn.getCreatedAt());
-        response.setPaymentUrl(paymentUrl);
+        response.setMockPayment(false);
+        response.setPaymentUrl(buildVNPayUrl(txnRef, amount, orderInfo, ipAddress));
         return response;
     }
 
@@ -122,24 +134,58 @@ public class VNPayServiceImpl implements PaymentService {
             return PaymentTransactionStatuses.SUCCESS.equals(txn.getStatus());
         }
 
-        txn.setStatus(success ? PaymentTransactionStatuses.SUCCESS : PaymentTransactionStatuses.FAILED);
-        try {
-            txn.setRawResponse(objectMapper.writeValueAsString(params));
-        } catch (JsonProcessingException e) {
-            log.warn("Could not serialize VNPay raw_response", e);
+        if (success) {
+            finalizeSuccessfulPayment(txn, params);
+        } else {
+            markTransactionFailed(txn, params);
         }
-        paymentTransactionRepository.save(txn);
 
-        UUID orderId = txn.getOrderId();
+        log.info("VNPay payment {} for orderId={}: {}", txnRef, txn.getOrderId(), success ? "SUCCESS" : "FAILED");
+        return success;
+    }
+
+    private void finalizeSuccessfulPayment(PaymentTransaction txn, Map<String, ?> rawPayload) {
+        txn.setStatus(PaymentTransactionStatuses.SUCCESS);
+        txn.setRawResponse(serializeRaw(rawPayload));
+        paymentTransactionRepository.save(txn);
+        publishPaymentProcessed(txn, true);
+    }
+
+    private void markTransactionFailed(PaymentTransaction txn, Map<String, String> params) {
+        txn.setStatus(PaymentTransactionStatuses.FAILED);
+        txn.setRawResponse(serializeRaw(params));
+        paymentTransactionRepository.save(txn);
+        publishPaymentProcessed(txn, false);
+    }
+
+    private void publishPaymentProcessed(PaymentTransaction txn, boolean success) {
         eventPublisher.publish(new PaymentProcessedEvent(
-                orderId,
+                txn.getOrderId(),
                 success,
                 PaymentProviders.VNPAY,
                 txn.getProviderTransactionId(),
                 txn.getId()));
+    }
 
-        log.info("VNPay payment {} for orderId={}: {}", txnRef, orderId, success ? "SUCCESS" : "FAILED");
-        return success;
+    private String serializeRaw(Object payload) {
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            log.warn("Could not serialize payment raw_response", e);
+            return null;
+        }
+    }
+
+    private String buildMockFrontendReturnUrl(UUID orderId, String txnRef) {
+        return UriComponentsBuilder.fromUriString(frontendReturnUrl)
+                .queryParam("status", PaymentTransactionStatuses.SUCCESS)
+                .queryParam("code", "00")
+                .queryParam("orderId", orderId)
+                .queryParam("transactionRef", txnRef)
+                .queryParam("mock", "true")
+                .build()
+                .encode()
+                .toUriString();
     }
 
     @Override
