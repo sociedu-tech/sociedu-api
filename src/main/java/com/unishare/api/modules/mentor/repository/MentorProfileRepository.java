@@ -26,6 +26,7 @@ public interface MentorProfileRepository extends JpaRepository<MentorProfile, UU
                                OR m.expertise ILIKE CONCAT('%', CAST(:keyword AS text), '%'))
                           AND (CAST(:minPrice AS numeric) IS NULL OR m.base_price >= CAST(:minPrice AS numeric))
                           AND (CAST(:maxPrice AS numeric) IS NULL OR m.base_price <= CAST(:maxPrice AS numeric))
+                        ORDER BY m.sessions_completed DESC, m.rating_avg DESC
                         """, countQuery = """
                         SELECT COUNT(*)
                         FROM mentor_profiles m

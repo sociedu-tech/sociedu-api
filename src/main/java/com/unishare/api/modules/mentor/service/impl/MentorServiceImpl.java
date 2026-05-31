@@ -12,27 +12,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class MentorServiceImpl implements MentorService {
-
-    /** Entity property → SQL column for native query alias {@code m}. */
-    private static final Map<String, String> MENTOR_NATIVE_SORT_COLUMNS = Map.of(
-            "sessionsCompleted", "m.sessions_completed",
-            "ratingAvg", "m.rating_avg",
-            "basePrice", "m.base_price",
-            "ratingCount", "m.rating_count",
-            "createdAt", "m.created_at",
-            "updatedAt", "m.updated_at");
 
     private final MentorProfileRepository mentorProfileRepository;
 
@@ -81,7 +69,7 @@ public class MentorServiceImpl implements MentorService {
             throw new AppException(MentorErrorCode.INVALID_SEARCH_FILTER, "minBasePrice must be <= maxBasePrice");
         }
         return mentorProfileRepository.searchByStatusAndFilters(
-                        status, kw, minBasePrice, maxBasePrice, toNativeMentorPageable(pageable))
+                        status, kw, minBasePrice, maxBasePrice, withoutSort(pageable))
                 .map(this::mapToResponse);
     }
 
@@ -118,32 +106,12 @@ public class MentorServiceImpl implements MentorService {
         return mapToResponse(profile);
     }
 
-    /**
-     * Native {@link MentorProfileRepository#searchByStatusAndFilters} appends {@code ORDER BY}
-     * from {@link Pageable} using property names as-is — must map to snake_case DB columns.
-     */
-    private static Pageable toNativeMentorPageable(Pageable pageable) {
-        if (pageable == null || pageable.getSort().isUnsorted()) {
-            return pageable;
+    /** Bỏ {@code sort=} — native query đã có {@code ORDER BY m.sessions_completed}. */
+    private static Pageable withoutSort(Pageable pageable) {
+        if (pageable == null || !pageable.isPaged()) {
+            return Pageable.unpaged();
         }
-        Sort nativeSort = Sort.unsorted();
-        for (Sort.Order order : pageable.getSort()) {
-            String column = MENTOR_NATIVE_SORT_COLUMNS.get(order.getProperty());
-            if (column == null) {
-                continue;
-            }
-            nativeSort = nativeSort.and(JpaSort.unsafe(order.getDirection(), column));
-        }
-        if (nativeSort.isUnsorted()) {
-            if (!pageable.isPaged()) {
-                return pageable;
-            }
-            return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        }
-        if (!pageable.isPaged()) {
-            return Pageable.unpaged(nativeSort);
-        }
-        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), nativeSort);
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
     }
 
     private static String normalizeMentorKeyword(String raw) {
