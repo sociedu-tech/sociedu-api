@@ -12,28 +12,12 @@ CREATE TABLE IF NOT EXISTS roles
 -- ============================================================
 -- Migration: Thêm scheduled_at_end vào booking_sessions
 -- ============================================================
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'booking_sessions' AND column_name = 'scheduled_at_end'
-    ) THEN
-        ALTER TABLE booking_sessions ADD COLUMN scheduled_at_end TIMESTAMP WITH TIME ZONE;
-    END IF;
-END $$;
+ALTER TABLE booking_sessions ADD COLUMN IF NOT EXISTS scheduled_at_end TIMESTAMP WITH TIME ZONE;
 
 -- ============================================================
 -- Migration: Thêm progress_percent vào bookings
 -- ============================================================
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'bookings' AND column_name = 'progress_percent'
-    ) THEN
-        ALTER TABLE bookings ADD COLUMN progress_percent INTEGER;
-    END IF;
-END $$;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS progress_percent INTEGER;
 
 -- ============================================================
 -- Migration: Tạo bảng session_report_requests
@@ -60,4 +44,3 @@ CREATE INDEX IF NOT EXISTS idx_srr_booking_id  ON session_report_requests (booki
 CREATE INDEX IF NOT EXISTS idx_srr_mentor_id   ON session_report_requests (mentor_id);
 CREATE INDEX IF NOT EXISTS idx_srr_mentee_id   ON session_report_requests (mentee_id);
 CREATE INDEX IF NOT EXISTS idx_srr_status      ON session_report_requests (status);
-

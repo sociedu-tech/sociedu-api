@@ -151,4 +151,17 @@ public class BookingController {
                                                 bookingId, sessionId, principal.getUserId(), request))
                                 .withMessage("Da ghi nhan xac nhan buoi hoc"));
         }
+
+        @Operation(summary = "Cập nhật tiến trình gói dịch vụ (mentor)")
+        @PreAuthorize("hasRole('MENTOR')")
+        @PatchMapping("/{bookingId}/progress")
+        public ResponseEntity<ApiResponse<BookingResponse>> updateProgress(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @RequestBody java.util.Map<String, Integer> body) {
+                int progressPercent = body.getOrDefault("progressPercent", 0);
+                return ResponseEntity.ok(ApiResponse.<BookingResponse>build()
+                                .withData(bookingService.updateProgress(bookingId, principal.getUserId(), progressPercent))
+                                .withMessage("Cap nhat tien trinh thanh cong"));
+        }
 }

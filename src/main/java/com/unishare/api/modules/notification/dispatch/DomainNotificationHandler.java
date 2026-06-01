@@ -39,7 +39,9 @@ public class DomainNotificationHandler {
                 || event instanceof SessionScheduledEvent
                 || event instanceof ModerationReportCreatedEvent
                 || event instanceof ModerationReportResolvedEvent
-                || event instanceof BookingReviewCreatedEvent;
+                || event instanceof BookingReviewCreatedEvent
+                || event instanceof SessionReportRequestedEvent
+                || event instanceof SessionReportSubmittedEvent;
     }
 
     public List<NotificationDispatchCommand> resolve(DomainEvent event) {
@@ -93,6 +95,12 @@ public class DomainNotificationHandler {
         }
         if (event instanceof BookingReviewCreatedEvent e) {
             return onBookingReviewCreated(e);
+        }
+        if (event instanceof SessionReportRequestedEvent e) {
+            return onSessionReportRequested(e);
+        }
+        if (event instanceof SessionReportSubmittedEvent e) {
+            return onSessionReportSubmitted(e);
         }
         return List.of();
     }
@@ -294,6 +302,11 @@ public class DomainNotificationHandler {
         return new NotificationDispatchCommand(userId, title, content, type, referenceType, referenceId, metadata);
     }
 
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> 86db1e0 (Add session report feature and progress tracking)
     private List<NotificationDispatchCommand> onModerationReportCreated(ModerationReportCreatedEvent e) {
         List<NotificationDispatchCommand> commands = new ArrayList<>();
         var meta = Map.<String, Object>of(
@@ -359,6 +372,33 @@ public class DomainNotificationHandler {
         ));
     }
 
+    private List<NotificationDispatchCommand> onSessionReportRequested(SessionReportRequestedEvent e) {
+        var meta = Map.<String, Object>of(
+                "requestId", e.requestId().toString(),
+                "bookingId", e.bookingId().toString());
+        return List.of(cmd(
+                e.menteeId(),
+                "Yêu cầu nộp báo cáo mới",
+                "Mentor yêu cầu bạn nộp báo cáo: " + e.title(),
+                "REPORT_REQUEST",
+                "report_request",
+                e.requestId(),
+                meta));
+    }
+
+    private List<NotificationDispatchCommand> onSessionReportSubmitted(SessionReportSubmittedEvent e) {
+        var meta = Map.<String, Object>of(
+                "requestId", e.requestId().toString(),
+                "bookingId", e.bookingId().toString());
+        return List.of(cmd(
+                e.mentorId(),
+                "Học viên đã nộp báo cáo",
+                "Học viên đã nộp báo cáo cho yêu cầu: " + e.title() + ". Vào mục chấm báo cáo để xem và duyệt.",
+                "REPORT_REQUEST",
+                "report_request",
+                e.requestId(),
+                meta));
+    }
     private static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }

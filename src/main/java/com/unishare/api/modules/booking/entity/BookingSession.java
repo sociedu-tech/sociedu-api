@@ -31,6 +31,9 @@ public class BookingSession {
     @Column(name = "scheduled_at")
     private Instant scheduledAt;
 
+    @Column(name = "scheduled_at_end")
+    private Instant scheduledAtEnd;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 
