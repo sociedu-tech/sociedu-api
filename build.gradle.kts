@@ -61,4 +61,5 @@ tasks.named<JavaCompile>("compileTestJava") {
 tasks.withType<Test> {
 	useJUnitPlatform()
 	jvmArgs("-Duser.timezone=UTC")
+	systemProperty("spring.profiles.active", "test")
 }
