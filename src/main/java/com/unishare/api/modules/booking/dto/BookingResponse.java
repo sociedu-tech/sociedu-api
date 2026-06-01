@@ -16,6 +16,7 @@ public class BookingResponse {
     private UUID mentorId;
     private UUID packageId;
     private String status;
+    private Integer progressPercent;
     private Instant createdAt;
     private List<BookingSessionResponse> sessions;
 }
