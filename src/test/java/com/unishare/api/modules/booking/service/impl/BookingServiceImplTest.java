@@ -4,6 +4,8 @@ import com.unishare.api.common.constants.BookingStatuses;
 import com.unishare.api.common.constants.SessionStatuses;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
+import com.unishare.api.infrastructure.googlemeet.GoogleMeetService;
+import com.unishare.api.modules.auth.repository.UserRepository;
 import com.unishare.api.modules.booking.dto.UpdateSessionRequest;
 import com.unishare.api.modules.booking.entity.Booking;
 import com.unishare.api.modules.booking.entity.BookingSession;
@@ -58,6 +60,12 @@ class BookingServiceImplTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private GoogleMeetService googleMeetService;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private BookingServiceImpl bookingService;

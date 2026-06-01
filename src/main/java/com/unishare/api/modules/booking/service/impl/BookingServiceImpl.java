@@ -6,7 +6,11 @@ import com.unishare.api.common.constants.SessionStatuses;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
+import com.unishare.api.infrastructure.googlemeet.GoogleMeetService;
+import com.unishare.api.infrastructure.googlemeet.dto.GoogleMeetCreateCommand;
+import com.unishare.api.infrastructure.googlemeet.dto.GoogleMeetCreateResult;
 import com.unishare.api.modules.booking.dto.*;
+import com.unishare.api.modules.auth.repository.UserRepository;
 import com.unishare.api.modules.booking.entity.Booking;
 import com.unishare.api.modules.booking.entity.BookingSession;
 import com.unishare.api.modules.booking.entity.BookingSessionEvidence;
@@ -29,7 +33,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -57,6 +63,8 @@ public class BookingServiceImpl implements BookingService {
     private final FileService fileService;
     private final DomainEventPublisher eventPublisher;
     private final UserService userService;
+    private final GoogleMeetService googleMeetService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
@@ -508,6 +516,85 @@ public class BookingServiceImpl implements BookingService {
                 .createdAt(b.getCreatedAt())
                 .sessions(sessions.stream().map(this::mapSession).collect(Collectors.toList()))
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public BookingSessionResponse scheduleSessionWithGoogleMeet(
+            UUID bookingId, UUID sessionId, UUID mentorId, CreateGoogleMeetSessionRequest req) {
+        Booking b = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
+        if (!b.getMentorId().equals(mentorId)) {
+            throw new AppException(BookingErrorCode.BOOKING_ACCESS_DENIED, "Chỉ Mentor mới được tạo link Google Meet.");
+        }
+
+        BookingSession s = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.SESSION_NOT_FOUND));
+        if (!s.getBookingId().equals(bookingId)) {
+            throw new AppException(BookingErrorCode.SESSION_NOT_FOUND);
+        }
+
+        Instant scheduledAt = req.getScheduledAt();
+        Instant scheduledAtEnd = req.getScheduledAtEnd() != null
+                ? req.getScheduledAtEnd()
+                : scheduledAt.plus(Duration.ofHours(1));
+
+        validateScheduleWindow(scheduledAt, scheduledAtEnd);
+        assertNoScheduleOverlap(b.getMentorId(), s.getId(), scheduledAt);
+
+        String title = StringUtils.hasText(req.getTitle()) ? req.getTitle().trim() : s.getTitle();
+        GoogleMeetCreateResult meet = googleMeetService.createMeeting(GoogleMeetCreateCommand.builder()
+                .mentorUserId(mentorId)
+                .title(title)
+                .description(req.getDescription())
+                .scheduledAt(scheduledAt)
+                .scheduledAtEnd(scheduledAtEnd)
+                .attendeeEmails(resolveParticipantEmails(b.getBuyerId(), b.getMentorId()))
+                .build());
+
+        s.setScheduledAt(scheduledAt);
+        s.setScheduledAtEnd(scheduledAtEnd);
+        s.setMeetingUrl(meet.meetingUrl());
+
+        if (SessionStatuses.PENDING.equals(s.getStatus())) {
+            try {
+                SessionStatusTransitionPolicy.validateTransition(s.getStatus(), SessionStatuses.SCHEDULED);
+                s.setStatus(SessionStatuses.SCHEDULED);
+            } catch (IllegalStateException e) {
+                throw new AppException(BookingErrorCode.INVALID_STATE_TRANSITION, e.getMessage());
+            }
+        }
+
+        sessionRepository.save(s);
+
+        eventPublisher.publish(new com.unishare.api.common.event.SessionScheduledEvent(
+                b.getId(), s.getId(), b.getBuyerId(), b.getMentorId(), s.getScheduledAt(), s.getTitle()));
+
+        return mapSession(s);
+    }
+
+    private void validateScheduleWindow(Instant scheduledAt, Instant scheduledAtEnd) {
+        if (scheduledAt.isBefore(Instant.now())) {
+            throw new AppException(BookingErrorCode.INVALID_SCHEDULE_TIME, "Không thể xếp lịch trong quá khứ.");
+        }
+        if (scheduledAtEnd.isBefore(scheduledAt) || scheduledAtEnd.equals(scheduledAt)) {
+            throw new AppException(BookingErrorCode.INVALID_SCHEDULE_TIME, "Thời gian kết thúc phải sau thời gian bắt đầu.");
+        }
+    }
+
+    private void assertNoScheduleOverlap(UUID mentorId, UUID sessionId, Instant scheduledAt) {
+        Instant start = scheduledAt.minus(Duration.ofHours(1));
+        Instant end = scheduledAt.plus(Duration.ofHours(1));
+        if (sessionRepository.existsOverlappingSession(mentorId, sessionId, start, end)) {
+            throw new AppException(BookingErrorCode.INVALID_SCHEDULE_TIME, "Lịch học bị trùng với một buổi học khác của Mentor.");
+        }
+    }
+
+    private List<String> resolveParticipantEmails(UUID buyerId, UUID mentorId) {
+        List<String> emails = new ArrayList<>(2);
+        userRepository.findById(buyerId).map(u -> u.getEmail()).filter(StringUtils::hasText).ifPresent(emails::add);
+        userRepository.findById(mentorId).map(u -> u.getEmail()).filter(StringUtils::hasText).ifPresent(emails::add);
+        return emails;
     }
 
     @Override

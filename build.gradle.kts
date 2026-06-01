@@ -39,6 +39,12 @@ dependencies {
 	// File Upload support
 	implementation("commons-io:commons-io:2.15.1")
 
+	// Google Calendar API — tạo Google Meet cho buổi mentoring
+	implementation("com.google.api-client:google-api-client:2.7.2")
+	implementation("com.google.apis:google-api-services-calendar:v3-rev20250404-2.0.0")
+	implementation("com.google.auth:google-auth-library-oauth2-http:1.33.1")
+	implementation("com.google.oauth-client:google-oauth-client:1.36.0")
+
 	// OpenAPI / Swagger UI (Spring Boot 4 → springdoc 3.x)
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 

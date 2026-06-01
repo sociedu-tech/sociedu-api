@@ -117,11 +117,12 @@ class OrderServiceImplTest {
         Order pending = order(UUID.randomUUID(), OrderStatuses.PENDING_PAYMENT, Instant.now());
         pending.setId(orderId);
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(pending));
+        when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
 
         service.applyPaymentResult(orderId, false);
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        verify(orderRepository).save(captor.capture());
+        verify(orderRepository).saveAndFlush(captor.capture());
         assertEquals(OrderStatuses.FAILED, captor.getValue().getStatus());
     }
 

@@ -4,6 +4,8 @@ import com.unishare.api.common.constants.BookingStatuses;
 import com.unishare.api.common.constants.SessionStatuses;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
+import com.unishare.api.infrastructure.googlemeet.GoogleMeetService;
+import com.unishare.api.modules.auth.repository.UserRepository;
 import com.unishare.api.modules.booking.dto.ConfirmSessionCompletionRequest;
 import com.unishare.api.modules.booking.entity.Booking;
 import com.unishare.api.modules.booking.entity.BookingSession;
@@ -14,6 +16,7 @@ import com.unishare.api.modules.booking.repository.BookingSessionRepository;
 import com.unishare.api.modules.file.service.FileService;
 import com.unishare.api.modules.order.service.OrderService;
 import com.unishare.api.modules.service.service.CatalogReadService;
+import com.unishare.api.modules.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +51,12 @@ class BookingServiceImplConfirmSessionTest {
     private FileService fileService;
     @Mock
     private DomainEventPublisher eventPublisher;
+    @Mock
+    private UserService userService;
+    @Mock
+    private GoogleMeetService googleMeetService;
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private BookingServiceImpl bookingService;

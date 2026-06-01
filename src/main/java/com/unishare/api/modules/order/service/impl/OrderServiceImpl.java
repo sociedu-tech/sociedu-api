@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -153,7 +154,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     public OrderSnapshot getOrderSnapshot(UUID orderId) {
         Order o = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
@@ -161,7 +162,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean applyPaymentResult(UUID orderId, boolean success) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
@@ -175,9 +176,9 @@ public class OrderServiceImpl implements OrderService {
         } else if (OrderStatuses.PENDING_PAYMENT.equals(order.getStatus())) {
             order.setStatus(OrderStatuses.FAILED);
         }
-        orderRepository.save(order);
+        order = orderRepository.saveAndFlush(order);
         if (success) {
-            log.info("applyPaymentResult marked orderId={} as paid", orderId);
+            log.info("applyPaymentResult marked orderId={} as paid (persisted status={})", orderId, order.getStatus());
             return true;
         }
         eventPublisher.publish(new OrderPaymentFailedEvent(orderId, order.getBuyerId()));

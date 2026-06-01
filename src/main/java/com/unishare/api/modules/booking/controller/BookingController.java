@@ -90,6 +90,20 @@ public class BookingController {
                                                 request)));
         }
 
+        @Operation(summary = "Tạo Google Meet và gắn lịch buổi học (mentor)")
+        @PreAuthorize("hasRole('MENTOR')")
+        @PostMapping("/{bookingId}/sessions/{sessionId}/google-meet")
+        public ResponseEntity<ApiResponse<BookingSessionResponse>> scheduleSessionWithGoogleMeet(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @PathVariable("sessionId") UUID sessionId,
+                        @Valid @RequestBody CreateGoogleMeetSessionRequest request) {
+                return ResponseEntity.ok(ApiResponse.<BookingSessionResponse>build()
+                                .withData(bookingService.scheduleSessionWithGoogleMeet(
+                                                bookingId, sessionId, principal.getUserId(), request))
+                                .withMessage("Da tao link Google Meet va cap nhat lich buoi hoc"));
+        }
+
         @Operation(summary = "Tạo buổi học mới cho Booking (Mentor)")
         @PreAuthorize("hasRole('MENTOR')")
         @PostMapping("/{bookingId}/sessions")

@@ -35,5 +35,9 @@ public interface BookingService {
             UUID bookingId, UUID sessionId, UUID actorUserId, ConfirmSessionCompletionRequest req);
     BookingSessionResponse createSession(UUID bookingId, UUID mentorId, CreateSessionRequest req);
 
+    /** Tạo Google Meet qua Calendar API và gắn lịch + link vào buổi học. */
+    BookingSessionResponse scheduleSessionWithGoogleMeet(
+            UUID bookingId, UUID sessionId, UUID mentorId, CreateGoogleMeetSessionRequest req);
+
     BookingResponse updateProgress(UUID bookingId, UUID mentorId, int progressPercent);
 }

@@ -29,6 +29,13 @@ out/
 .env
 .env
 
+client_secret_191207484194-nfbc017ilthjqb0sa5io6t1tetvbm2de.apps.googleusercontent.com.json
+
+# Google OAuth / credentials — không commit
+client_secret*.json
+google-oauth-tokens/
+data/google-oauth-tokens/
+
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

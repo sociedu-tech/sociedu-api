@@ -54,6 +54,7 @@ public class SecurityConfig {
             "/api/v1/auth/otp/login",
 
             "/api/v1/payments/vnpay/**",
+            "/api/v1/integrations/google/oauth/callback",
 
             "/v3/api-docs/**",
             "/swagger-ui/**",

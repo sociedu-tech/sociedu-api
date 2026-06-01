@@ -96,6 +96,14 @@ app:
   order:
     # Thời gian chờ thanh toán sau checkout (khớp VNPay ~15 phút). Ghi đè: APP_ORDER_PAYMENT_EXPIRATION_MINUTES
     payment-expiration-minutes: ${APP_ORDER_PAYMENT_EXPIRATION_MINUTES:15}
+  google:
+    meet:
+      enabled: ${GOOGLE_MEET_ENABLED:false}
+      oauth-client-path: ${GOOGLE_MEET_OAUTH_CLIENT_PATH:}
+      oauth-redirect-uri: ${GOOGLE_MEET_OAUTH_REDIRECT_URI:${app.urls.api-public-base}/api/v1/integrations/google/oauth/callback}
+      token-store-path: ${GOOGLE_MEET_TOKEN_STORE_PATH:./data/google-oauth-tokens}
+      calendar-id: ${GOOGLE_MEET_CALENDAR_ID:primary}
+      timezone: ${GOOGLE_MEET_TIMEZONE:Asia/Ho_Chi_Minh}
   websocket:
     # Same host/port as REST — path under /api/v1 (override only if infra requires it)
     endpoint: ${APP_WS_ENDPOINT:/api/v1/ws}

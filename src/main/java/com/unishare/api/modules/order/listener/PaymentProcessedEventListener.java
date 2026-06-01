@@ -13,6 +13,8 @@ import com.unishare.api.modules.service.service.CatalogReadService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -32,6 +34,7 @@ public class PaymentProcessedEventListener {
     private final DomainEventPublisher eventPublisher;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void onPaymentProcessed(PaymentProcessedEvent event) {
         log.info("Payment processed orderId={} success={}", event.orderId(), event.success());
         boolean newlyPaid = orderService.applyPaymentResult(event.orderId(), event.success());
@@ -40,8 +43,13 @@ public class PaymentProcessedEventListener {
         }
 
         var snap = orderService.getOrderSnapshot(event.orderId());
+        log.info(
+                "Payment reconcile orderId={} newlyPaid={} dbStatus={}",
+                event.orderId(),
+                newlyPaid,
+                snap.status());
         if (!OrderStatuses.PAID.equals(snap.status())) {
-            log.warn("Payment success but orderId={} status={}", event.orderId(), snap.status());
+            log.error("Payment success but orderId={} still status={} after applyPaymentResult", event.orderId(), snap.status());
             return;
         }
 
@@ -51,17 +59,21 @@ public class PaymentProcessedEventListener {
             log.info("Published OrderPaidEvent orderId={}", event.orderId());
         }
 
-        if (bookingService.ensureBookingForOrder(event.orderId())) {
-            bookingRepository.findByOrderId(event.orderId()).ifPresent(booking -> {
-                eventPublisher.publish(new BookingCreatedEvent(
-                        booking.getId(),
-                        event.orderId(),
-                        booking.getBuyerId(),
-                        booking.getMentorId()));
-                log.info("Published BookingCreatedEvent bookingId={} orderId={}", booking.getId(), event.orderId());
-            });
-        } else {
-            log.info("ensureBookingForOrder did not create booking for orderId={}", event.orderId());
+        try {
+            if (bookingService.ensureBookingForOrder(event.orderId())) {
+                bookingRepository.findByOrderId(event.orderId()).ifPresent(booking -> {
+                    eventPublisher.publish(new BookingCreatedEvent(
+                            booking.getId(),
+                            event.orderId(),
+                            booking.getBuyerId(),
+                            booking.getMentorId()));
+                    log.info("Published BookingCreatedEvent bookingId={} orderId={}", booking.getId(), event.orderId());
+                });
+            } else {
+                log.info("ensureBookingForOrder did not create booking for orderId={}", event.orderId());
+            }
+        } catch (Exception e) {
+            log.error("ensureBookingForOrder failed for orderId={}", event.orderId(), e);
         }
 
         eventPublisher.publish(new PaymentSucceededEvent(
