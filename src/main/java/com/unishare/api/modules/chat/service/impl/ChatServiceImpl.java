@@ -24,6 +24,10 @@ import com.unishare.api.modules.auth.repository.UserRepository;
 import com.unishare.api.modules.order.entity.Order;
 import com.unishare.api.modules.order.repository.OrderRepository;
 import com.unishare.api.modules.service.service.CatalogReadService;
+import com.unishare.api.modules.user.dto.UserProfileNames;
+import com.unishare.api.modules.user.entity.UserProfile;
+import com.unishare.api.modules.user.repository.UserProfileRepository;
+import com.unishare.api.modules.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +36,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +59,8 @@ public class ChatServiceImpl implements ChatService {
     private final MessageAttachmentRepository attachmentRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
+    private final UserService userService;
+    private final UserProfileRepository userProfileRepository;
     private final OrderRepository orderRepository;
     private final BookingRepository bookingRepository;
     private final BookingSessionRepository bookingSessionRepository;
@@ -74,7 +84,7 @@ public class ChatServiceImpl implements ChatService {
             participantRepository.save(p);
         }
 
-        return toConvResponse(c);
+        return buildConversationResponse(c, creatorUserId);
     }
 
     @Override
@@ -94,7 +104,7 @@ public class ChatServiceImpl implements ChatService {
                 .findDirectGeneralConversationId(userId, peerId)
                 .or(() -> participantRepository.findDirectGeneralConversationId(peerId, userId))
                 .map(conversationRepository::findById)
-                .flatMap(opt -> opt.map(this::toConvResponse))
+                .flatMap(opt -> opt.map(conv -> buildConversationResponse(conv, userId)))
                 .orElseGet(() -> createGeneralDirectConversation(userId, peerId));
     }
 
@@ -110,29 +120,31 @@ public class ChatServiceImpl implements ChatService {
             p.setId(new ConversationParticipantId(cid, uid));
             participantRepository.save(p);
         }
-        return toConvResponse(c);
+        return buildConversationResponse(c, userA);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ConversationResponse> listMyConversations(UUID userId, Pageable pageable) {
-        Page<ConversationParticipant> parts = participantRepository.findById_UserId(userId, pageable);
-        List<UUID> ids = parts.getContent().stream()
-                .map(p -> p.getId().getConversationId())
-                .toList();
+        Page<UUID> idPage = participantRepository.findConversationIdsForUserOrderByRecentActivity(userId, pageable);
+        List<UUID> ids = idPage.getContent();
         Map<UUID, Conversation> byId = conversationRepository.findAllById(ids).stream()
                 .collect(Collectors.toMap(Conversation::getId, Function.identity()));
-        List<ConversationResponse> items = ids.stream()
+        Map<UUID, ChatMessage> lastMessages = loadLastMessagesByConversationIds(ids);
+        Set<UUID> peerIds = collectPeerIds(ids, userId);
+        Map<UUID, UserProfileNames> namesByUserId = userService.getProfileNamesByUserIds(peerIds);
+        Map<UUID, UserProfile> profilesByUserId = loadProfilesByUserIds(peerIds);
+        List<ConversationResponse> items = dedupeDirectConversationsByPeer(ids.stream()
                 .map(byId::get)
                 .filter(Objects::nonNull)
-                .map(this::toConvResponse)
-                .toList();
+                .map(c -> enrichConversationResponse(c, userId, lastMessages, namesByUserId, profilesByUserId))
+                .toList());
         return PageResponse.<ConversationResponse>builder()
                 .items(items)
-                .page(parts.getNumber())
-                .size(parts.getSize())
-                .total(parts.getTotalElements())
-                .totalPages(parts.getTotalPages())
+                .page(idPage.getNumber())
+                .size(idPage.getSize())
+                .total(idPage.getTotalElements())
+                .totalPages(idPage.getTotalPages())
                 .build();
     }
 
@@ -161,7 +173,7 @@ public class ChatServiceImpl implements ChatService {
         if (!participantRepository.isParticipant(conversationId, userId)) {
             throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
         }
-        return toConvResponse(c);
+        return buildConversationResponse(c, userId);
     }
 
     @Override
@@ -289,13 +301,132 @@ public class ChatServiceImpl implements ChatService {
         }
     }
 
-    private ConversationResponse toConvResponse(Conversation c) {
+    private ConversationResponse buildConversationResponse(Conversation c, UUID viewerUserId) {
+        List<UUID> ids = List.of(c.getId());
+        Map<UUID, ChatMessage> lastMessages = loadLastMessagesByConversationIds(ids);
+        Set<UUID> peerIds = collectPeerIds(ids, viewerUserId);
+        Map<UUID, UserProfileNames> namesByUserId = userService.getProfileNamesByUserIds(peerIds);
+        Map<UUID, UserProfile> profilesByUserId = loadProfilesByUserIds(peerIds);
+        return enrichConversationResponse(c, viewerUserId, lastMessages, namesByUserId, profilesByUserId);
+    }
+
+    private ConversationResponse enrichConversationResponse(
+            Conversation c,
+            UUID viewerUserId,
+            Map<UUID, ChatMessage> lastMessageByConversationId,
+            Map<UUID, UserProfileNames> namesByUserId,
+            Map<UUID, UserProfile> profilesByUserId) {
+        ChatMessage lastMessage = lastMessageByConversationId.get(c.getId());
+        UUID peerId = resolvePeerId(c.getId(), viewerUserId);
+        UserProfileNames peerNames = peerId != null ? namesByUserId.get(peerId) : null;
+        UserProfile peerProfile = peerId != null ? profilesByUserId.get(peerId) : null;
+
         return ConversationResponse.builder()
                 .id(c.getId())
                 .type(c.getType())
                 .bookingId(c.getBookingId())
                 .createdAt(c.getCreatedAt())
+                .peerUserId(peerId)
+                .peerDisplayName(formatDisplayName(peerId, peerNames))
+                .peerAvatarFileId(peerProfile != null ? peerProfile.getAvatarFileId() : null)
+                .lastMessageContent(lastMessage != null ? lastMessage.getContent() : null)
+                .lastMessageAt(lastMessage != null ? lastMessage.getCreatedAt() : null)
                 .build();
+    }
+
+    private UUID resolvePeerId(UUID conversationId, UUID viewerUserId) {
+        List<UUID> userIds = participantRepository.findUserIdsByConversationId(conversationId);
+        if (userIds.size() != 2) {
+            return null;
+        }
+        return userIds.stream().filter(id -> !id.equals(viewerUserId)).findFirst().orElse(null);
+    }
+
+    private String formatDisplayName(UUID userId, UserProfileNames names) {
+        if (names != null) {
+            String display = names.toDisplayName();
+            if (display != null && !display.isBlank()) {
+                return display;
+            }
+        }
+        if (userId == null) {
+            return null;
+        }
+        String id = userId.toString().replace("-", "");
+        String shortId = id.length() <= 8 ? id : id.substring(0, 8);
+        return "Người dùng #" + shortId;
+    }
+
+    private Map<UUID, ChatMessage> loadLastMessagesByConversationIds(Collection<UUID> conversationIds) {
+        if (conversationIds == null || conversationIds.isEmpty()) {
+            return Map.of();
+        }
+        return messageRepository.findLatestByConversationIds(conversationIds).stream()
+                .collect(Collectors.toMap(ChatMessage::getConversationId, Function.identity(), (a, b) -> a));
+    }
+
+    private Map<UUID, UserProfile> loadProfilesByUserIds(Collection<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userProfileRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(UserProfile::getUserId, Function.identity()));
+    }
+
+    private Set<UUID> collectPeerIds(Collection<UUID> conversationIds, UUID viewerUserId) {
+        Set<UUID> peerIds = new LinkedHashSet<>();
+        for (UUID conversationId : conversationIds) {
+            UUID peerId = resolvePeerId(conversationId, viewerUserId);
+            if (peerId != null) {
+                peerIds.add(peerId);
+            }
+        }
+        return peerIds;
+    }
+
+    private List<ConversationResponse> dedupeDirectConversationsByPeer(List<ConversationResponse> items) {
+        Map<UUID, ConversationResponse> preferredByPeer = new LinkedHashMap<>();
+        for (ConversationResponse item : items) {
+            UUID peerId = item.getPeerUserId();
+            if (peerId == null) {
+                continue;
+            }
+            preferredByPeer.merge(peerId, item, this::preferConversation);
+        }
+
+        Set<UUID> emittedPeers = new HashSet<>();
+        List<ConversationResponse> result = new ArrayList<>();
+        for (ConversationResponse item : items) {
+            UUID peerId = item.getPeerUserId();
+            if (peerId == null) {
+                result.add(item);
+                continue;
+            }
+            if (emittedPeers.add(peerId)) {
+                result.add(preferredByPeer.get(peerId));
+            }
+        }
+        return result;
+    }
+
+    private ConversationResponse preferConversation(ConversationResponse a, ConversationResponse b) {
+        boolean aGeneral = ConversationTypes.GENERAL.equals(a.getType());
+        boolean bGeneral = ConversationTypes.GENERAL.equals(b.getType());
+        if (aGeneral && !bGeneral) {
+            return a;
+        }
+        if (bGeneral && !aGeneral) {
+            return b;
+        }
+        Instant aAt = a.getLastMessageAt() != null ? a.getLastMessageAt() : a.getCreatedAt();
+        Instant bAt = b.getLastMessageAt() != null ? b.getLastMessageAt() : b.getCreatedAt();
+        if (aAt == null) {
+            return b;
+        }
+        if (bAt == null) {
+            return a;
+        }
+        return aAt.isAfter(bAt) ? a : b;
     }
 
     private ChatMessageResponse toMessageResponse(ChatMessage m) {

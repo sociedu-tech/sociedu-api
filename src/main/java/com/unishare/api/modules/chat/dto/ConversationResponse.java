@@ -13,4 +13,10 @@ public class ConversationResponse {
     private String type;
     private UUID bookingId;
     private Instant createdAt;
+    /** Người còn lại trong hội thoại 1-1 (general). */
+    private UUID peerUserId;
+    private String peerDisplayName;
+    private UUID peerAvatarFileId;
+    private String lastMessageContent;
+    private Instant lastMessageAt;
 }

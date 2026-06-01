@@ -55,7 +55,7 @@ public class ChatController {
     @GetMapping(value = {"/api/v1/chat/conversations", "/api/v1/conversations"})
     public ResponseEntity<ApiResponse<PageResponse<ConversationResponse>>> listConversations(
             @AuthenticationPrincipal CustomUserPrincipal principal,
-            @PageableDefault(size = 20, sort = "joinedAt") Pageable pageable) {
+            @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.<PageResponse<ConversationResponse>>build()
                 .withData(chatService.listMyConversations(principal.getUserId(), pageable)));
     }
@@ -70,26 +70,29 @@ public class ChatController {
                 .withData(chatService.getConversation(principal.getUserId(), conversationId)));
     }
 
-    @Operation(summary = "Tin nhắn trong conversation (Không phân trang - Tương thích ngược)", deprecated = true)
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("/api/v1/chat/conversations/{conversationId}/messages")
-    @Deprecated
-    public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> listMessagesOld(
-            @AuthenticationPrincipal CustomUserPrincipal principal,
-            @PathVariable UUID conversationId) {
-        return ResponseEntity.ok(ApiResponse.<List<ChatMessageResponse>>build()
-                .withData(chatService.listMessages(principal.getUserId(), conversationId)));
-    }
-
     @Operation(summary = "Tin nhắn trong conversation (Có phân trang)")
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/api/v1/conversations/{conversationId}/messages")
+    @GetMapping(value = {
+            "/api/v1/chat/conversations/{conversationId}/messages",
+            "/api/v1/conversations/{conversationId}/messages"
+    })
     public ResponseEntity<ApiResponse<Page<ChatMessageResponse>>> listMessages(
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable UUID conversationId,
             Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.<Page<ChatMessageResponse>>build()
                 .withData(chatService.listMessages(principal.getUserId(), conversationId, pageable)));
+    }
+
+    @Operation(summary = "Tin nhắn trong conversation (Không phân trang - Tương thích ngược)", deprecated = true)
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/api/v1/chat/conversations/{conversationId}/messages/all")
+    @Deprecated
+    public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> listMessagesOld(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable UUID conversationId) {
+        return ResponseEntity.ok(ApiResponse.<List<ChatMessageResponse>>build()
+                .withData(chatService.listMessages(principal.getUserId(), conversationId)));
     }
 
     @Operation(summary = "Gửi tin nhắn")
