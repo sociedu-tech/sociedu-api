@@ -13,6 +13,8 @@ public interface ChatService {
 
     ConversationResponse createConversation(UUID creatorUserId, CreateConversationRequest request);
 
+    ConversationResponse findOrCreateDirectConversation(UUID userId, DirectConversationRequest request);
+
     PageResponse<ConversationResponse> listMyConversations(UUID userId, Pageable pageable);
 
     ConversationResponse getConversation(UUID userId, UUID conversationId);

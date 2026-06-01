@@ -1,7 +1,13 @@
 package com.unishare.api.modules.chat.service.impl;
 
+import com.unishare.api.common.constants.ConversationTypes;
+import com.unishare.api.common.constants.MessageContextTypes;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
+import com.unishare.api.modules.booking.entity.Booking;
+import com.unishare.api.modules.booking.entity.BookingSession;
+import com.unishare.api.modules.booking.repository.BookingRepository;
+import com.unishare.api.modules.booking.repository.BookingSessionRepository;
 import com.unishare.api.modules.chat.dto.*;
 import com.unishare.api.modules.chat.entity.ChatMessage;
 import com.unishare.api.modules.chat.entity.Conversation;
@@ -14,6 +20,10 @@ import com.unishare.api.modules.chat.repository.ConversationParticipantRepositor
 import com.unishare.api.modules.chat.repository.ConversationRepository;
 import com.unishare.api.modules.chat.repository.MessageAttachmentRepository;
 import com.unishare.api.modules.chat.service.ChatService;
+import com.unishare.api.modules.auth.repository.UserRepository;
+import com.unishare.api.modules.order.entity.Order;
+import com.unishare.api.modules.order.repository.OrderRepository;
+import com.unishare.api.modules.service.service.CatalogReadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +50,11 @@ public class ChatServiceImpl implements ChatService {
     private final ChatMessageRepository messageRepository;
     private final MessageAttachmentRepository attachmentRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
+    private final BookingRepository bookingRepository;
+    private final BookingSessionRepository bookingSessionRepository;
+    private final CatalogReadService catalogReadService;
 
     @Override
     @Transactional
@@ -59,6 +74,42 @@ public class ChatServiceImpl implements ChatService {
             participantRepository.save(p);
         }
 
+        return toConvResponse(c);
+    }
+
+    @Override
+    @Transactional
+    public ConversationResponse findOrCreateDirectConversation(UUID userId, DirectConversationRequest request) {
+        UUID peerId = request.getPeerUserId();
+        if (peerId == null || peerId.equals(userId)) {
+            throw new AppException(ChatErrorCode.INVALID_CHAT_PEER);
+        }
+        if (!userRepository.existsById(peerId)) {
+            throw new AppException(ChatErrorCode.INVALID_CHAT_PEER);
+        }
+
+        validateMessageContext(userId, peerId, request.getContextType(), request.getContextId());
+
+        return participantRepository
+                .findDirectGeneralConversationId(userId, peerId)
+                .or(() -> participantRepository.findDirectGeneralConversationId(peerId, userId))
+                .map(conversationRepository::findById)
+                .flatMap(opt -> opt.map(this::toConvResponse))
+                .orElseGet(() -> createGeneralDirectConversation(userId, peerId));
+    }
+
+    private ConversationResponse createGeneralDirectConversation(UUID userA, UUID userB) {
+        Conversation c = new Conversation();
+        c.setType(ConversationTypes.GENERAL);
+        c.setBookingId(null);
+        c = conversationRepository.save(c);
+
+        UUID cid = c.getId();
+        for (UUID uid : List.of(userA, userB)) {
+            ConversationParticipant p = new ConversationParticipant();
+            p.setId(new ConversationParticipantId(cid, uid));
+            participantRepository.save(p);
+        }
         return toConvResponse(c);
     }
 
@@ -117,11 +168,21 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     public ChatMessageResponse sendMessage(UUID userId, UUID conversationId, SendMessageRequest request) {
         assertParticipant(conversationId, userId);
+
+        UUID peerId = findDirectPeerId(conversationId, userId).orElse(null);
+        if (peerId != null) {
+            validateMessageContext(userId, peerId, request.getContextType(), request.getContextId());
+        }
+
         ChatMessage m = new ChatMessage();
         m.setConversationId(conversationId);
         m.setSenderId(userId);
         m.setContent(request.getContent());
         m.setType(request.getType() != null ? request.getType() : "text");
+        if (request.getContextType() != null && !request.getContextType().isBlank()) {
+            m.setContextType(normalizeContextType(request.getContextType()));
+            m.setContextId(request.getContextId());
+        }
         m = messageRepository.save(m);
 
         if (request.getAttachmentFileIds() != null) {
@@ -141,6 +202,83 @@ public class ChatServiceImpl implements ChatService {
                 .build();
         messagingTemplate.convertAndSend("/topic/conversations/" + conversationId, envelope);
         return response;
+    }
+
+    private java.util.Optional<UUID> findDirectPeerId(UUID conversationId, UUID userId) {
+        List<UUID> userIds = participantRepository.findUserIdsByConversationId(conversationId);
+        if (userIds.size() != 2) {
+            return java.util.Optional.empty();
+        }
+        return userIds.stream().filter(id -> !id.equals(userId)).findFirst();
+    }
+
+    private void validateMessageContext(UUID userId, UUID peerId, String contextType, UUID contextId) {
+        if (contextType == null || contextType.isBlank()) {
+            return;
+        }
+        String type = normalizeContextType(contextType);
+        if (MessageContextTypes.GENERAL.equals(type)) {
+            return;
+        }
+        if (contextId == null) {
+            throw new AppException(ChatErrorCode.INVALID_MESSAGE_CONTEXT);
+        }
+
+        switch (type) {
+            case MessageContextTypes.ORDER -> assertOrderContext(userId, peerId, contextId);
+            case MessageContextTypes.BOOKING -> assertBookingContext(userId, peerId, contextId);
+            case MessageContextTypes.SESSION -> assertSessionContext(userId, peerId, contextId);
+            default -> throw new AppException(ChatErrorCode.INVALID_MESSAGE_CONTEXT);
+        }
+    }
+
+    private void assertOrderContext(UUID userId, UUID peerId, UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new AppException(ChatErrorCode.INVALID_MESSAGE_CONTEXT));
+
+        bookingRepository.findByOrderId(orderId).ifPresentOrElse(
+                booking -> assertBookingParticipants(userId, peerId, booking),
+                () -> assertOrderParticipants(userId, peerId, order));
+    }
+
+    private void assertOrderParticipants(UUID userId, UUID peerId, Order order) {
+        UUID mentorId;
+        try {
+            mentorId = catalogReadService.resolvePurchaseContext(order.getServiceId()).mentorId();
+        } catch (AppException e) {
+            throw new AppException(ChatErrorCode.INVALID_MESSAGE_CONTEXT);
+        }
+        boolean asBuyer = userId.equals(order.getBuyerId()) && peerId.equals(mentorId);
+        boolean asMentor = userId.equals(mentorId) && peerId.equals(order.getBuyerId());
+        if (!asBuyer && !asMentor) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
+    }
+
+    private void assertBookingContext(UUID userId, UUID peerId, UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(ChatErrorCode.INVALID_MESSAGE_CONTEXT));
+        assertBookingParticipants(userId, peerId, booking);
+    }
+
+    private void assertSessionContext(UUID userId, UUID peerId, UUID sessionId) {
+        BookingSession session = bookingSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new AppException(ChatErrorCode.INVALID_MESSAGE_CONTEXT));
+        Booking booking = bookingRepository.findById(session.getBookingId())
+                .orElseThrow(() -> new AppException(ChatErrorCode.INVALID_MESSAGE_CONTEXT));
+        assertBookingParticipants(userId, peerId, booking);
+    }
+
+    private void assertBookingParticipants(UUID userId, UUID peerId, Booking booking) {
+        boolean asBuyer = userId.equals(booking.getBuyerId()) && peerId.equals(booking.getMentorId());
+        boolean asMentor = userId.equals(booking.getMentorId()) && peerId.equals(booking.getBuyerId());
+        if (!asBuyer && !asMentor) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
+    }
+
+    private String normalizeContextType(String contextType) {
+        return contextType.trim().toLowerCase();
     }
 
     private void assertParticipant(UUID conversationId, UUID userId) {
@@ -172,6 +310,8 @@ public class ChatServiceImpl implements ChatService {
                 .edited(m.getEdited())
                 .createdAt(m.getCreatedAt())
                 .attachmentFileIds(fileIds.isEmpty() ? null : fileIds)
+                .contextType(m.getContextType())
+                .contextId(m.getContextId())
                 .build();
     }
 }

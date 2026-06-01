@@ -86,6 +86,31 @@ class ChatControllerTest {
                 .build();
     }
 
+    @DisplayName("POST /api/v1/chat/conversations/direct - Tìm hoặc tạo hội thoại 1-1")
+    void findOrCreateDirect_ReturnsSuccess() throws Exception {
+        UUID peerId = UUID.randomUUID();
+        DirectConversationRequest request = new DirectConversationRequest();
+        request.setPeerUserId(peerId);
+        request.setContextType("order");
+        request.setContextId(UUID.randomUUID());
+
+        ConversationResponse response = ConversationResponse.builder()
+                .id(UUID.randomUUID())
+                .type("general")
+                .build();
+
+        when(chatService.findOrCreateDirectConversation(eq(userId), any(DirectConversationRequest.class)))
+                .thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/chat/conversations/direct")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.type").value("general"))
+                .andExpect(jsonPath("$.isSuccess").value(true));
+    }
+
     @Test
     @DisplayName("POST /api/v1/conversations - Tạo conversation thành công")
     void createConversation_ReturnsSuccess() throws Exception {

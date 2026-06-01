@@ -20,4 +20,20 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
 
     @Query("SELECT COUNT(c) > 0 FROM ConversationParticipant c WHERE c.id.conversationId = :cid AND c.id.userId = :uid")
     boolean isParticipant(@Param("cid") UUID conversationId, @Param("uid") UUID userId);
+
+    @Query("""
+            SELECT cp1.id.conversationId FROM ConversationParticipant cp1
+            JOIN ConversationParticipant cp2 ON cp1.id.conversationId = cp2.id.conversationId
+            JOIN Conversation c ON c.id = cp1.id.conversationId
+            WHERE cp1.id.userId = :userA
+              AND cp2.id.userId = :userB
+              AND c.type = 'general'
+              AND (SELECT COUNT(p) FROM ConversationParticipant p WHERE p.id.conversationId = c.id) = 2
+            """)
+    java.util.Optional<UUID> findDirectGeneralConversationId(
+            @Param("userA") UUID userA,
+            @Param("userB") UUID userB);
+
+    @Query("SELECT cp.id.userId FROM ConversationParticipant cp WHERE cp.id.conversationId = :conversationId")
+    List<UUID> findUserIdsByConversationId(@Param("conversationId") UUID conversationId);
 }

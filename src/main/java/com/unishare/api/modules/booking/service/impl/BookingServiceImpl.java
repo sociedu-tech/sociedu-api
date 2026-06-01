@@ -13,9 +13,13 @@ import com.unishare.api.modules.booking.entity.BookingSession;
 import com.unishare.api.modules.booking.entity.BookingSessionEvidence;
 import com.unishare.api.modules.booking.exception.BookingErrorCode;
 import com.unishare.api.modules.booking.repository.BookingRepository;
+import com.unishare.api.modules.booking.policy.SessionStatusTransitionPolicy;
 import com.unishare.api.modules.booking.repository.BookingSessionEvidenceRepository;
 import com.unishare.api.modules.booking.repository.BookingSessionRepository;
 import com.unishare.api.modules.booking.service.BookingService;
+import com.unishare.api.modules.booking.support.UpcomingSessionPicker;
+import com.unishare.api.modules.user.dto.UserProfileNames;
+import com.unishare.api.modules.user.service.UserService;
 import com.unishare.api.modules.file.service.FileService;
 import com.unishare.api.modules.order.dto.OrderSnapshot;
 import com.unishare.api.modules.order.service.OrderService;
@@ -29,12 +33,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
+
+    private static final List<String> UPCOMING_SESSION_STATUSES = List.of(
+            SessionStatuses.PENDING,
+            SessionStatuses.SCHEDULED,
+            SessionStatusTransitionPolicy.IN_PROGRESS,
+            SessionStatuses.AWAITING_CONFIRMATION);
 
     private final BookingRepository bookingRepository;
     private final BookingSessionRepository sessionRepository;
@@ -43,6 +55,7 @@ public class BookingServiceImpl implements BookingService {
     private final CatalogReadService catalogReadService;
     private final FileService fileService;
     private final DomainEventPublisher eventPublisher;
+    private final UserService userService;
 
     @Override
     @Transactional
@@ -91,6 +104,60 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public PageResponse<BookingResponse> listForMentor(UUID mentorId, Pageable pageable) {
         return PageResponse.of(bookingRepository.findByMentorId(mentorId, pageable).map(this::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public NextUpcomingSessionResponse getNextUpcomingSessionForBuyer(UUID buyerId) {
+        List<BookingSession> candidates =
+                sessionRepository.findUpcomingSessionsForBuyer(buyerId, UPCOMING_SESSION_STATUSES);
+        return buildNextUpcomingSession(candidates, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public NextUpcomingSessionResponse getNextUpcomingSessionForMentor(UUID mentorId) {
+        List<BookingSession> candidates =
+                sessionRepository.findUpcomingSessionsForMentor(mentorId, UPCOMING_SESSION_STATUSES);
+        return buildNextUpcomingSession(candidates, false);
+    }
+
+    private NextUpcomingSessionResponse buildNextUpcomingSession(
+            List<BookingSession> candidates, boolean perspectiveIsBuyer) {
+        Optional<BookingSession> picked = UpcomingSessionPicker.pickNearest(candidates, Instant.now());
+        if (picked.isEmpty()) {
+            return null;
+        }
+        BookingSession session = picked.get();
+        Booking booking = bookingRepository.findById(session.getBookingId())
+                .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
+        UUID counterpartyId = perspectiveIsBuyer ? booking.getMentorId() : booking.getBuyerId();
+        Map<UUID, UserProfileNames> names =
+                userService.getProfileNamesByUserIds(List.of(counterpartyId));
+        String counterpartyName = formatCounterpartyName(counterpartyId, names.get(counterpartyId));
+        return NextUpcomingSessionResponse.builder()
+                .bookingId(booking.getId())
+                .sessionId(session.getId())
+                .title(session.getTitle() != null && !session.getTitle().isBlank()
+                        ? session.getTitle()
+                        : "Buổi học")
+                .scheduledAt(session.getScheduledAt())
+                .status(session.getStatus())
+                .counterpartyId(counterpartyId)
+                .counterpartyName(counterpartyName)
+                .build();
+    }
+
+    private static String formatCounterpartyName(UUID userId, UserProfileNames names) {
+        if (names != null) {
+            String display = names.toDisplayName();
+            if (display != null && !display.isBlank()) {
+                return display;
+            }
+        }
+        String id = userId.toString().replace("-", "");
+        String shortId = id.length() <= 8 ? id : id.substring(0, 8);
+        return "Người dùng #" + shortId;
     }
 
     @Override

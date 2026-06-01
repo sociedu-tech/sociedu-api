@@ -41,6 +41,12 @@ public class ChatMessage {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "context_type")
+    private String contextType;
+
+    @Column(name = "context_id")
+    private UUID contextId;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = Instant.now();

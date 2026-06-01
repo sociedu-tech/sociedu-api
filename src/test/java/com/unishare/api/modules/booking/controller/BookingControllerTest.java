@@ -8,6 +8,7 @@ import com.unishare.api.config.GlobalExceptionHandler;
 import com.unishare.api.infrastructure.security.CustomUserPrincipal;
 import com.unishare.api.modules.booking.dto.BookingResponse;
 import com.unishare.api.modules.booking.dto.BookingSessionResponse;
+import com.unishare.api.modules.booking.dto.NextUpcomingSessionResponse;
 import com.unishare.api.modules.booking.dto.UpdateSessionRequest;
 import com.unishare.api.modules.booking.service.BookingService;
 import org.junit.jupiter.api.BeforeEach;
@@ -111,6 +112,25 @@ class BookingControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].status").value(BookingStatuses.PENDING))
                 .andExpect(jsonPath("$.isSuccess").value(true));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/bookings/me/buyer/next-session - Trả về buổi học sắp tới")
+    void nextSessionAsBuyer_ReturnsSuccess() throws Exception {
+        UUID sessionId = UUID.randomUUID();
+        NextUpcomingSessionResponse response = NextUpcomingSessionResponse.builder()
+                .sessionId(sessionId)
+                .title("Buổi 1")
+                .scheduledAt(Instant.parse("2026-06-10T14:00:00Z"))
+                .build();
+
+        when(bookingService.getNextUpcomingSessionForBuyer(userId)).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/bookings/me/buyer/next-session"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sessionId").value(sessionId.toString()))
+                .andExpect(jsonPath("$.data.title").value("Buổi 1"));
     }
 
     @Test

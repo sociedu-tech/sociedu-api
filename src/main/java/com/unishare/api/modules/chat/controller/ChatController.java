@@ -30,6 +30,16 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    @Operation(summary = "Tìm hoặc tạo hội thoại 1-1 (general) với peer")
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping(value = {"/api/v1/chat/conversations/direct", "/api/v1/conversations/direct"})
+    public ResponseEntity<ApiResponse<ConversationResponse>> findOrCreateDirect(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody DirectConversationRequest request) {
+        return ResponseEntity.ok(ApiResponse.<ConversationResponse>build()
+                .withData(chatService.findOrCreateDirectConversation(principal.getUserId(), request)));
+    }
+
     @Operation(summary = "Tạo conversation")
     @PreAuthorize("isAuthenticated()")
     @PostMapping(value = {"/api/v1/chat/conversations", "/api/v1/conversations"})

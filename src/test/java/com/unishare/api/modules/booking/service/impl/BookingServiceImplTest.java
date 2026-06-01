@@ -15,6 +15,7 @@ import com.unishare.api.modules.booking.policy.SessionStatusTransitionPolicy;
 import com.unishare.api.modules.file.service.FileService;
 import com.unishare.api.modules.order.service.OrderService;
 import com.unishare.api.modules.service.service.CatalogReadService;
+import com.unishare.api.modules.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +55,9 @@ class BookingServiceImplTest {
 
     @Mock
     private DomainEventPublisher eventPublisher;
+
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private BookingServiceImpl bookingService;

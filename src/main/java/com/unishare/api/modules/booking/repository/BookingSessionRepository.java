@@ -4,12 +4,37 @@ import com.unishare.api.modules.booking.entity.BookingSession;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 public interface BookingSessionRepository extends JpaRepository<BookingSession, UUID> {
 
         List<BookingSession> findByBookingIdOrderByScheduledAtAsc(UUID bookingId);
+
+        @Query("""
+                        SELECT s FROM BookingSession s
+                        INNER JOIN Booking b ON s.bookingId = b.id
+                        WHERE b.buyerId = :buyerId
+                        AND b.status NOT IN ('canceled', 'completed', 'refunded')
+                        AND s.status IN :statuses
+                        ORDER BY s.scheduledAt ASC
+                        """)
+        List<BookingSession> findUpcomingSessionsForBuyer(
+                        @org.springframework.data.repository.query.Param("buyerId") UUID buyerId,
+                        @org.springframework.data.repository.query.Param("statuses") Collection<String> statuses);
+
+        @Query("""
+                        SELECT s FROM BookingSession s
+                        INNER JOIN Booking b ON s.bookingId = b.id
+                        WHERE b.mentorId = :mentorId
+                        AND b.status NOT IN ('canceled', 'completed', 'refunded')
+                        AND s.status IN :statuses
+                        ORDER BY s.scheduledAt ASC
+                        """)
+        List<BookingSession> findUpcomingSessionsForMentor(
+                        @org.springframework.data.repository.query.Param("mentorId") UUID mentorId,
+                        @org.springframework.data.repository.query.Param("statuses") Collection<String> statuses);
 
         @Query("""
                         SELECT COUNT(s) > 0 FROM BookingSession s

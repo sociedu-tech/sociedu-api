@@ -15,6 +15,12 @@ public interface BookingService {
 
     PageResponse<BookingResponse> listForMentor(UUID mentorId, Pageable pageable);
 
+    /** Buổi học sắp tới gần nhất của học viên (buyer); null nếu không có. */
+    NextUpcomingSessionResponse getNextUpcomingSessionForBuyer(UUID buyerId);
+
+    /** Buổi dạy sắp tới gần nhất của mentor; null nếu không có. */
+    NextUpcomingSessionResponse getNextUpcomingSessionForMentor(UUID mentorId);
+
     BookingResponse getById(UUID bookingId, UUID userId);
 
     BookingSessionResponse updateSession(UUID bookingId, UUID sessionId, UUID actorUserId, UpdateSessionRequest req);

@@ -17,4 +17,6 @@ public class ChatMessageResponse {
     private Boolean edited;
     private Instant createdAt;
     private List<UUID> attachmentFileIds;
+    private String contextType;
+    private UUID contextId;
 }

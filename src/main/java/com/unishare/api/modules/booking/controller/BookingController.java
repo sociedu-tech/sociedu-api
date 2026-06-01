@@ -39,6 +39,15 @@ public class BookingController {
                                 .withData(bookingService.listForBuyer(principal.getUserId(), pageable)));
         }
 
+        @Operation(summary = "Buổi học sắp tới gần nhất (học viên)")
+        @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
+        @GetMapping("/me/buyer/next-session")
+        public ResponseEntity<ApiResponse<NextUpcomingSessionResponse>> nextSessionAsBuyer(
+                        @AuthenticationPrincipal CustomUserPrincipal principal) {
+                return ResponseEntity.ok(ApiResponse.<NextUpcomingSessionResponse>build()
+                                .withData(bookingService.getNextUpcomingSessionForBuyer(principal.getUserId())));
+        }
+
         @Operation(summary = "Booking của tôi (mentor)")
         @PreAuthorize("hasRole('MENTOR')")
         @GetMapping("/me/mentor")
@@ -47,6 +56,15 @@ public class BookingController {
                         @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
                 return ResponseEntity.ok(ApiResponse.<PageResponse<BookingResponse>>build()
                                 .withData(bookingService.listForMentor(principal.getUserId(), pageable)));
+        }
+
+        @Operation(summary = "Buổi dạy sắp tới gần nhất (mentor)")
+        @PreAuthorize("hasRole('MENTOR')")
+        @GetMapping("/me/mentor/next-session")
+        public ResponseEntity<ApiResponse<NextUpcomingSessionResponse>> nextSessionAsMentor(
+                        @AuthenticationPrincipal CustomUserPrincipal principal) {
+                return ResponseEntity.ok(ApiResponse.<NextUpcomingSessionResponse>build()
+                                .withData(bookingService.getNextUpcomingSessionForMentor(principal.getUserId())));
         }
 
         @Operation(summary = "Chi tiết booking")

@@ -11,4 +11,7 @@ public class SendMessageRequest {
     private String content;
     private String type = MessageTypes.TEXT;
     private List<UUID> attachmentFileIds;
+    /** order | booking | session — gắn ngữ cảnh lên tin nhắn, không tạo hội thoại riêng. */
+    private String contextType;
+    private UUID contextId;
 }
