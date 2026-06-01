@@ -1,0 +1,115 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-on-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH — pull, build RAR, PM2 restart
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          REPO_PATH: ${{ secrets.DEPLOY_REPO_PATH }}
+          APP_HOME: ${{ secrets.DEPLOY_APP_HOME }}
+          GIT_BRANCH: main
+          GIT_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: REPO_PATH,APP_HOME,GIT_BRANCH,GIT_SHA
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+
+            REPO_PATH="${REPO_PATH:-/home/sociedu/sociedu_api}"
+            APP_HOME="${APP_HOME:-/home/sociedu/sociedu_api}"
+            RELEASE_ID="$(date +%Y%m%d%H%M%S)-${GIT_SHA:0:7}"
+            RELEASE_DIR="${APP_HOME}/releases/${RELEASE_ID}"
+            CURRENT="${APP_HOME}/current"
+            ARCHIVE="${APP_HOME}/archives/sociedu-api-${RELEASE_ID}.rar"
+
+            echo "=== sociedu-api deploy ==="
+            echo "repo=${REPO_PATH}"
+            echo "app_home=${APP_HOME}"
+            echo "release=${RELEASE_ID}"
+
+            for cmd in git java rar pm2; do
+              if ! command -v "${cmd}" >/dev/null 2>&1; then
+                echo "Thiếu lệnh: ${cmd}"
+                exit 1
+              fi
+            done
+
+            mkdir -p "${APP_HOME}/releases" "${APP_HOME}/archives"
+            [[ -d "${REPO_PATH}/.git" ]] || { echo "Chưa clone repo tại ${REPO_PATH}"; exit 1; }
+
+            cd "${REPO_PATH}"
+            git fetch origin "${GIT_BRANCH}"
+            git reset --hard "origin/${GIT_BRANCH}"
+            chmod +x gradlew
+
+            if [[ -f "${APP_HOME}/.env" ]]; then
+              set -a
+              # shellcheck disable=SC1091
+              source "${APP_HOME}/.env"
+              set +a
+            else
+              echo "Cảnh báo: chưa có ${APP_HOME}/.env"
+            fi
+            export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-prod}"
+
+            ./gradlew bootJar -x test --no-daemon --stacktrace
+
+            mkdir -p "${RELEASE_DIR}"
+            cp build/libs/*.jar "${RELEASE_DIR}/app.jar"
+
+            cd "${RELEASE_DIR}"
+            rar a -r "${ARCHIVE}" app.jar
+            echo "RAR: ${ARCHIVE}"
+
+            ln -sfn "${RELEASE_DIR}" "${CURRENT}"
+
+            cd "${CURRENT}"
+
+            # Nạp lại .env ngay trước PM2 — cwd=current/ không có file .env
+            if [[ -f "${APP_HOME}/.env" ]]; then
+              set -a
+              # shellcheck disable=SC1091
+              source "${APP_HOME}/.env"
+              set +a
+            fi
+            export APP_PORT="${APP_PORT:-9992}"
+            export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-prod}"
+
+            if pm2 describe sociedu-api >/dev/null 2>&1; then
+              pm2 delete sociedu-api
+            fi
+
+            pm2 start java --name sociedu-api --time \
+              -- \
+              -Xms256m \
+              -Xmx768m \
+              -Duser.timezone=UTC \
+              -jar app.jar \
+              --spring.profiles.active="${SPRING_PROFILES_ACTIVE}" \
+              --server.port="${APP_PORT}"
+
+            echo "PM2 sociedu-api port=${APP_PORT} profile=${SPRING_PROFILES_ACTIVE}"
+
+            pm2 save
+
+            ls -1dt "${APP_HOME}/releases"/* 2>/dev/null | tail -n +6 | xargs -r rm -rf
+            ls -1dt "${APP_HOME}/archives"/*.rar 2>/dev/null | tail -n +11 | xargs -r rm -f
+
+            pm2 status sociedu-api
+            echo "=== Deploy xong: ${RELEASE_ID} ==="

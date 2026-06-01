@@ -1,0 +1,45 @@
+# Profile test — dùng trong GitHub Actions (PostgreSQL service) và chạy test local.
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sociedu_test}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  sql:
+    init:
+      mode: always
+  flyway:
+    enabled: false
+  mail:
+    host: localhost
+    port: 1025
+    username: test@example.com
+    password: test
+
+server:
+  port: 0
+
+app:
+  urls:
+    frontend-base: http://localhost:3000
+    api-public-base: http://localhost:8080
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:900000}
+    refresh-token-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:7}
+  mail:
+    from: test@example.com
+
+cloudinary:
+  cloud-name: test
+  api-key: test-key
+  api-secret: test-secret
+
+vnpay:
+  tmn-code: TESTCODE
+  hash-secret: TESTSECRET123456789012345678901234
+  url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  return-url: http://localhost:8080/api/v1/payments/vnpay/return
+  frontend-return-url: http://localhost:3000/payment-result
