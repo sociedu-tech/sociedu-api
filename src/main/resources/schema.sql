@@ -9,3 +9,55 @@ CREATE TABLE IF NOT EXISTS roles
     CONSTRAINT uk_roles_name UNIQUE (name)
 );
 
+-- ============================================================
+-- Migration: Thêm scheduled_at_end vào booking_sessions
+-- ============================================================
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'booking_sessions' AND column_name = 'scheduled_at_end'
+    ) THEN
+        ALTER TABLE booking_sessions ADD COLUMN scheduled_at_end TIMESTAMP WITH TIME ZONE;
+    END IF;
+END $$;
+
+-- ============================================================
+-- Migration: Thêm progress_percent vào bookings
+-- ============================================================
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'bookings' AND column_name = 'progress_percent'
+    ) THEN
+        ALTER TABLE bookings ADD COLUMN progress_percent INTEGER;
+    END IF;
+END $$;
+
+-- ============================================================
+-- Migration: Tạo bảng session_report_requests
+-- ============================================================
+CREATE TABLE IF NOT EXISTS session_report_requests
+(
+    id                    UUID                     NOT NULL PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_id            UUID                     NOT NULL,
+    session_id            UUID,
+    mentor_id             UUID                     NOT NULL,
+    mentee_id             UUID                     NOT NULL,
+    title                 VARCHAR(255)             NOT NULL,
+    description           TEXT,
+    due_date              TIMESTAMP WITH TIME ZONE,
+    status                VARCHAR(50)              NOT NULL DEFAULT 'PENDING_SUBMISSION',
+    mentee_content        TEXT,
+    mentee_attachment_url TEXT,
+    mentor_feedback       TEXT,
+    created_at            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_srr_booking_id  ON session_report_requests (booking_id);
+CREATE INDEX IF NOT EXISTS idx_srr_mentor_id   ON session_report_requests (mentor_id);
+CREATE INDEX IF NOT EXISTS idx_srr_mentee_id   ON session_report_requests (mentee_id);
+CREATE INDEX IF NOT EXISTS idx_srr_status      ON session_report_requests (status);
+

@@ -90,8 +90,19 @@ public class BookingController {
                                                 request)));
         }
 
-        @Operation(summary = "Thêm minh chứng buổi học")
+        @Operation(summary = "Tạo buổi học mới cho Booking (Mentor)")
         @PreAuthorize("hasRole('MENTOR')")
+        @PostMapping("/{bookingId}/sessions")
+        public ResponseEntity<ApiResponse<BookingSessionResponse>> createSession(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @Valid @RequestBody CreateSessionRequest request) {
+                return ResponseEntity.ok(ApiResponse.<BookingSessionResponse>build()
+                                .withData(bookingService.createSession(bookingId, principal.getUserId(), request)));
+        }
+
+        @Operation(summary = "Thêm minh chứng buổi học")
+        @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
         @PostMapping("/{bookingId}/sessions/{sessionId}/evidences")
         public ResponseEntity<ApiResponse<EvidenceResponse>> addEvidence(
                         @AuthenticationPrincipal CustomUserPrincipal principal,

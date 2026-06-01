@@ -1,6 +1,8 @@
 package com.unishare.api.modules.booking.service.impl;
 
 import com.unishare.api.common.dto.AppException;
+import com.unishare.api.common.event.BookingReviewCreatedEvent;
+import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.modules.booking.dto.CreateReviewRequest;
 import com.unishare.api.modules.booking.dto.RatingSummaryResponse;
 import com.unishare.api.modules.booking.dto.ReviewResponse;
@@ -33,6 +35,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final BookingReviewRepository bookingReviewRepository;
     private final MentorProfileRepository mentorProfileRepository;
     private final UserProfileRepository userProfileRepository;
+    private final DomainEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -69,6 +72,15 @@ public class ReviewServiceImpl implements ReviewService {
 
         // Atomic update of mentor rating
         mentorProfileRepository.updateRatingIncrementally(booking.getMentorId(), request.getRating());
+
+        eventPublisher.publish(new BookingReviewCreatedEvent(
+                review.getId(),
+                review.getBookingId(),
+                review.getMentorId(),
+                review.getReviewerId(),
+                review.getRating(),
+                review.getComment()
+        ));
 
         String reviewerName = userProfileRepository.findById(reviewerId)
                 .map(UserProfile::getDisplayName)

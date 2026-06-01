@@ -33,4 +33,6 @@ public interface BookingService {
 
     BookingSessionResponse confirmSessionCompletion(
             UUID bookingId, UUID sessionId, UUID actorUserId, ConfirmSessionCompletionRequest req);
+
+    BookingSessionResponse createSession(UUID bookingId, UUID mentorId, CreateSessionRequest req);
 }

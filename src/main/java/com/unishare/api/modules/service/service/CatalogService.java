@@ -9,15 +9,19 @@ import com.unishare.api.modules.service.dto.request.CreateServicePackageRequest;
 import com.unishare.api.modules.service.dto.request.CreateServicePackageVersionRequest;
 import com.unishare.api.modules.service.dto.request.UpdateServicePackageRequest;
 import com.unishare.api.modules.service.dto.request.UpdateServicePackageVersionRequest;
+import com.unishare.api.modules.service.dto.request.SaveMentorPackagesRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Gói dịch vụ / curriculum (catalog) — tách khỏi {@link MentorService}.
  */
 public interface CatalogService {
+
+    List<ServicePackageResponse> savePackages(UUID mentorId, List<SaveMentorPackagesRequest.MentorPackageRequest> packages);
 
     Page<ServicePackageResponse> getMentorPackages(UUID mentorId, String keyword, Pageable pageable);
 

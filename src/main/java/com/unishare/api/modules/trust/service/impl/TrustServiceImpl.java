@@ -4,6 +4,9 @@ import com.unishare.api.common.constants.DisputeStatuses;
 import com.unishare.api.common.constants.ReportStatuses;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
+import com.unishare.api.common.event.ModerationReportCreatedEvent;
+import com.unishare.api.common.event.ModerationReportResolvedEvent;
+import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.modules.trust.dto.*;
 import com.unishare.api.modules.trust.entity.Dispute;
 import com.unishare.api.modules.trust.entity.ModerationReport;
@@ -13,6 +16,8 @@ import com.unishare.api.modules.trust.repository.DisputeRepository;
 import com.unishare.api.modules.trust.repository.ModerationReportEvidenceRepository;
 import com.unishare.api.modules.trust.repository.ModerationReportRepository;
 import com.unishare.api.modules.trust.service.TrustService;
+import com.unishare.api.modules.booking.repository.BookingSessionRepository;
+import com.unishare.api.modules.booking.entity.BookingSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +35,8 @@ public class TrustServiceImpl implements TrustService {
     private final ModerationReportRepository reportRepository;
     private final ModerationReportEvidenceRepository evidenceRepository;
     private final DisputeRepository disputeRepository;
+    private final BookingSessionRepository bookingSessionRepository;
+    private final DomainEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -43,6 +50,39 @@ public class TrustServiceImpl implements TrustService {
         r.setDescription(request.getDescription());
         r.setStatus(ReportStatuses.OPEN);
         r = reportRepository.save(r);
+
+        // Auto-create a Dispute record when reporting a session or booking
+        if ("session".equalsIgnoreCase(r.getType()) || "booking".equalsIgnoreCase(r.getType())) {
+            Dispute d = new Dispute();
+            d.setReportId(r.getId());
+            if ("booking".equalsIgnoreCase(r.getType())) {
+                d.setBookingId(r.getEntityId());
+            } else {
+                d.setSessionId(r.getEntityId());
+                if (r.getEntityId() != null) {
+                    UUID bookingId = bookingSessionRepository.findById(r.getEntityId())
+                            .map(BookingSession::getBookingId)
+                            .orElse(null);
+                    d.setBookingId(bookingId);
+                }
+            }
+            d.setRaisedBy(reporterId);
+            d.setReason(r.getReason());
+            d.setDescription(r.getDescription());
+            d.setStatus(DisputeStatuses.OPEN);
+            disputeRepository.save(d);
+        }
+
+        eventPublisher.publish(new ModerationReportCreatedEvent(
+                r.getId(),
+                r.getReporterId(),
+                r.getReportedUserId(),
+                r.getType(),
+                r.getEntityId(),
+                r.getReason(),
+                r.getDescription()
+        ));
+
         return toReportResponse(r);
     }
 
@@ -80,6 +120,41 @@ public class TrustServiceImpl implements TrustService {
         r.setResolvedAt(Instant.now());
         r.setResolvedBy(moderatorUserId);
         reportRepository.save(r);
+
+        // Sync dispute status if it exists
+        disputeRepository.findFirstByReportId(reportId).ifPresent(d -> {
+            d.setResolutionNote(request.getResolutionNote());
+            d.setResolvedAt(Instant.now());
+            d.setResolvedBy(moderatorUserId);
+            
+            if (ReportStatuses.RESOLVED.equalsIgnoreCase(request.getStatus())) {
+                if (request.getResolutionNote() != null && request.getResolutionNote().contains("chấp nhận khiếu nại học viên")) {
+                    d.setStatus(DisputeStatuses.RESOLVED_BUYER);
+                } else if (request.getResolutionNote() != null && request.getResolutionNote().contains("bác khiếu nại")) {
+                    d.setStatus(DisputeStatuses.RESOLVED_MENTOR);
+                } else {
+                    d.setStatus(DisputeStatuses.CLOSED);
+                }
+            } else if (ReportStatuses.REJECTED.equalsIgnoreCase(request.getStatus())) {
+                d.setStatus(DisputeStatuses.CLOSED);
+            } else if (ReportStatuses.UNDER_REVIEW.equalsIgnoreCase(request.getStatus())) {
+                d.setStatus(DisputeStatuses.UNDER_REVIEW);
+            } else if (ReportStatuses.OPEN.equalsIgnoreCase(request.getStatus())) {
+                d.setStatus(DisputeStatuses.OPEN);
+            }
+            disputeRepository.save(d);
+        });
+
+        eventPublisher.publish(new ModerationReportResolvedEvent(
+                r.getId(),
+                r.getReporterId(),
+                r.getReportedUserId(),
+                r.getType(),
+                r.getEntityId(),
+                r.getStatus(),
+                r.getResolutionNote()
+        ));
+
         return toReportResponse(r);
     }
 

@@ -20,6 +20,7 @@ public class AdminModerationReportResponse {
     private String summary;
     private String status;
     private String priority;
+    private String resolutionNote;
     private SessionDisputeDetailDto sessionDispute;
 
     @Data

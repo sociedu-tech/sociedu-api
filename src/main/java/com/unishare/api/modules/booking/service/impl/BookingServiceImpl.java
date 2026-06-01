@@ -58,7 +58,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserService userService;
 
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void ensureBookingForOrder(UUID orderId) {
         OrderSnapshot snap = orderService.getOrderSnapshot(orderId);
         if (!OrderStatuses.PAID.equals(snap.status())) {
@@ -272,6 +272,11 @@ public class BookingServiceImpl implements BookingService {
         }
 
         sessionRepository.save(s);
+
+        if (req.getScheduledAt() != null) {
+            eventPublisher.publish(new com.unishare.api.common.event.SessionScheduledEvent(
+                    b.getId(), s.getId(), b.getBuyerId(), b.getMentorId(), s.getScheduledAt(), s.getTitle()));
+        }
         
         // Aggregate completion check after saving session
         if (SessionStatuses.COMPLETED.equals(s.getStatus())) {
@@ -444,6 +449,8 @@ public class BookingServiceImpl implements BookingService {
         if (Boolean.TRUE.equals(menteeAck) && Boolean.TRUE.equals(mentorAck)) {
             transitionSessionStatus(s, SessionStatuses.COMPLETED);
             s.setCompletedAt(Instant.now());
+            eventPublisher.publish(new com.unishare.api.common.event.SessionCompletedEvent(
+                    b.getId(), s.getId(), b.getBuyerId(), b.getMentorId(), s.getTitle()));
             checkAndCompleteBooking(b);
             return;
         }
@@ -488,6 +495,25 @@ public class BookingServiceImpl implements BookingService {
                 .createdAt(b.getCreatedAt())
                 .sessions(sessions.stream().map(this::mapSession).collect(Collectors.toList()))
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public BookingSessionResponse createSession(UUID bookingId, UUID mentorId, CreateSessionRequest req) {
+        Booking b = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
+        if (!b.getMentorId().equals(mentorId)) {
+            throw new AppException(BookingErrorCode.BOOKING_ACCESS_DENIED, "Chỉ Mentor của Booking mới được phép thêm buổi học.");
+        }
+
+        BookingSession s = new BookingSession();
+        s.setBookingId(bookingId);
+        s.setTitle(req.getTitle());
+        s.setStatus(SessionStatuses.PENDING);
+        s.setVersion(1L);
+        s = sessionRepository.save(s);
+
+        return mapSession(s);
     }
 
     private BookingSessionResponse mapSession(BookingSession s) {

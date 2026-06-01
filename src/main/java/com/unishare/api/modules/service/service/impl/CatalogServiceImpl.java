@@ -14,6 +14,7 @@ import com.unishare.api.modules.service.entity.ServicePackageVersion;
 import com.unishare.api.modules.service.exception.ServiceErrorCode;
 import com.unishare.api.modules.order.repository.OrderRepository;
 import com.unishare.api.modules.service.dto.request.UpdateServicePackageVersionRequest;
+import com.unishare.api.modules.service.dto.request.SaveMentorPackagesRequest;
 import com.unishare.api.modules.service.repository.PackageCurriculumRepository;
 import com.unishare.api.modules.service.repository.ServicePackageRepository;
 import com.unishare.api.modules.service.repository.ServicePackageVersionRepository;
@@ -40,6 +41,122 @@ public class CatalogServiceImpl implements CatalogService {
     private final ServicePackageVersionRepository servicePackageVersionRepository;
     private final PackageCurriculumRepository packageCurriculumRepository;
     private final OrderRepository orderRepository;
+
+    @Override
+    @Transactional
+    public List<ServicePackageResponse> savePackages(UUID mentorId, List<SaveMentorPackagesRequest.MentorPackageRequest> packages) {
+        if (packages == null) {
+            packages = List.of();
+        }
+
+        // 1. Load existing packages from DB for this mentor
+        List<ServicePackage> existingPackages = servicePackageRepository.findByMentorId(mentorId).stream()
+                .filter(p -> p.getDeletedAt() == null)
+                .toList();
+
+        // Map of existing packages by ID
+        Map<UUID, ServicePackage> existingMap = existingPackages.stream()
+                .collect(Collectors.toMap(ServicePackage::getId, p -> p));
+
+        // Sets of IDs sent from frontend
+        Set<UUID> incomingIds = packages.stream()
+                .map(SaveMentorPackagesRequest.MentorPackageRequest::getId)
+                .filter(id -> id != null && !id.startsWith("local-") && !id.trim().isEmpty())
+                .map(UUID::fromString)
+                .collect(Collectors.toSet());
+
+        // 2. Delete packages that are in DB but NOT in incoming list
+        for (ServicePackage existing : existingPackages) {
+            if (!incomingIds.contains(existing.getId())) {
+                existing.setDeletedAt(Instant.now());
+                existing.setIsActive(false);
+                servicePackageRepository.save(existing);
+            }
+        }
+
+        // 3. Process incoming packages
+        for (SaveMentorPackagesRequest.MentorPackageRequest req : packages) {
+            String title = req.getTitle();
+            String desc = req.getDescription();
+            java.math.BigDecimal price = req.getPrice() != null ? req.getPrice() : java.math.BigDecimal.ZERO;
+            Integer duration = parseDuration(req.getDuration());
+
+            if (req.getId() == null || req.getId().startsWith("local-") || req.getId().trim().isEmpty()) {
+                // CREATE new package
+                ServicePackage pkg = new ServicePackage();
+                pkg.setMentorId(mentorId);
+                pkg.setName(title);
+                pkg.setDescription(desc);
+                pkg.setIsActive(true);
+                pkg = servicePackageRepository.save(pkg);
+
+                ServicePackageVersion version = new ServicePackageVersion();
+                version.setPackageId(pkg.getId());
+                version.setPrice(price);
+                version.setDuration(duration);
+                version.setDeliveryType("ONLINE");
+                version.setIsDefault(true);
+                ServicePackageVersion savedVer = servicePackageVersionRepository.save(version);
+
+                // Add a default curriculum item since it's required/expected
+                PackageCurriculum curriculum = new PackageCurriculum();
+                curriculum.setPackageVersionId(savedVer.getId());
+                curriculum.setTitle("Mục học chính");
+                curriculum.setDescription("Nội dung trao đổi chi tiết");
+                curriculum.setOrderIndex(1);
+                curriculum.setDuration(duration);
+                packageCurriculumRepository.save(curriculum);
+            } else {
+                // UPDATE existing package
+                UUID pkgId = UUID.fromString(req.getId());
+                ServicePackage pkg = existingMap.get(pkgId);
+                if (pkg != null) {
+                    pkg.setName(title);
+                    pkg.setDescription(desc);
+                    servicePackageRepository.save(pkg);
+
+                    // Update default version or create one if not exists
+                    List<ServicePackageVersion> versions = servicePackageVersionRepository.findByPackageId(pkgId);
+                    ServicePackageVersion defaultVer = versions.stream()
+                            .filter(v -> Boolean.TRUE.equals(v.getIsDefault()))
+                            .findFirst()
+                            .orElse(null);
+
+                    if (defaultVer != null) {
+                        defaultVer.setPrice(price);
+                        defaultVer.setDuration(duration);
+                        servicePackageVersionRepository.save(defaultVer);
+                    } else {
+                        ServicePackageVersion version = new ServicePackageVersion();
+                        version.setPackageId(pkg.getId());
+                        version.setPrice(price);
+                        version.setDuration(duration);
+                        version.setDeliveryType("ONLINE");
+                        version.setIsDefault(true);
+                        servicePackageVersionRepository.save(version);
+                    }
+                }
+            }
+        }
+
+        // Return updated list
+        return servicePackageRepository.findByMentorId(mentorId).stream()
+                .filter(p -> p.getDeletedAt() == null)
+                .map(this::mapToPackageResponse)
+                .toList();
+    }
+
+    private Integer parseDuration(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return 60;
+        }
+        try {
+            String clean = raw.replaceAll("[^0-9]", "");
+            return clean.isEmpty() ? 60 : Integer.parseInt(clean);
+        } catch (Exception e) {
+            return 60;
+        }
+    }
 
     @Override
     @Transactional(readOnly = true)

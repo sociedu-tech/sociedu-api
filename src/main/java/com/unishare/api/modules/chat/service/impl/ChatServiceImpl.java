@@ -28,7 +28,9 @@ import com.unishare.api.modules.user.dto.UserProfileNames;
 import com.unishare.api.modules.user.entity.UserProfile;
 import com.unishare.api.modules.user.repository.UserProfileRepository;
 import com.unishare.api.modules.user.service.UserService;
+import com.unishare.api.common.event.ChatMessageReceivedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -65,6 +67,7 @@ public class ChatServiceImpl implements ChatService {
     private final BookingRepository bookingRepository;
     private final BookingSessionRepository bookingSessionRepository;
     private final CatalogReadService catalogReadService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -126,7 +129,9 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ConversationResponse> listMyConversations(UUID userId, Pageable pageable) {
-        Page<UUID> idPage = participantRepository.findConversationIdsForUserOrderByRecentActivity(userId, pageable);
+        Page<UUID> idPage = isAdmin(userId)
+                ? participantRepository.findAllConversationIdsOrderByRecentActivity(pageable)
+                : participantRepository.findConversationIdsForUserOrderByRecentActivity(userId, pageable);
         List<UUID> ids = idPage.getContent();
         Map<UUID, Conversation> byId = conversationRepository.findAllById(ids).stream()
                 .collect(Collectors.toMap(Conversation::getId, Function.identity()));
@@ -170,7 +175,7 @@ public class ChatServiceImpl implements ChatService {
     public ConversationResponse getConversation(UUID userId, UUID conversationId) {
         Conversation c = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new AppException(ChatErrorCode.CONVERSATION_NOT_FOUND));
-        if (!participantRepository.isParticipant(conversationId, userId)) {
+        if (!participantRepository.isParticipant(conversationId, userId) && !isAdmin(userId)) {
             throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
         }
         return buildConversationResponse(c, userId);
@@ -179,6 +184,9 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional
     public ChatMessageResponse sendMessage(UUID userId, UUID conversationId, SendMessageRequest request) {
+        if (isAdmin(userId)) {
+            throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
+        }
         assertParticipant(conversationId, userId);
 
         UUID peerId = findDirectPeerId(conversationId, userId).orElse(null);
@@ -213,6 +221,28 @@ public class ChatServiceImpl implements ChatService {
                 .payload(response)
                 .build();
         messagingTemplate.convertAndSend("/topic/conversations/" + conversationId, envelope);
+
+        // Publish domain event for notification system
+        if (peerId != null) {
+            String senderName = "Người dùng";
+            try {
+                var names = userService.getProfileNamesByUserIds(java.util.Set.of(userId));
+                var profileNames = names.get(userId);
+                if (profileNames != null) {
+                    String display = profileNames.toDisplayName();
+                    if (display != null && !display.isBlank()) {
+                        senderName = display;
+                    }
+                }
+            } catch (Exception ignored) {}
+            String preview = request.getContent();
+            if (preview != null && preview.length() > 100) {
+                preview = preview.substring(0, 100) + "…";
+            }
+            eventPublisher.publishEvent(new ChatMessageReceivedEvent(
+                    conversationId, userId, peerId, senderName, preview != null ? preview : ""));
+        }
+
         return response;
     }
 
@@ -293,10 +323,16 @@ public class ChatServiceImpl implements ChatService {
         return contextType.trim().toLowerCase();
     }
 
+    private boolean isAdmin(UUID userId) {
+        return userRepository.findByIdWithRoles(userId)
+                .map(u -> u.getUserRoles().stream().anyMatch(ur -> "ADMIN".equalsIgnoreCase(ur.getRole().getName())))
+                .orElse(false);
+    }
+
     private void assertParticipant(UUID conversationId, UUID userId) {
         conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new AppException(ChatErrorCode.CONVERSATION_NOT_FOUND));
-        if (!participantRepository.isParticipant(conversationId, userId)) {
+        if (!participantRepository.isParticipant(conversationId, userId) && !isAdmin(userId)) {
             throw new AppException(ChatErrorCode.CHAT_ACCESS_DENIED);
         }
     }
@@ -317,7 +353,29 @@ public class ChatServiceImpl implements ChatService {
             Map<UUID, UserProfileNames> namesByUserId,
             Map<UUID, UserProfile> profilesByUserId) {
         ChatMessage lastMessage = lastMessageByConversationId.get(c.getId());
-        UUID peerId = resolvePeerId(c.getId(), viewerUserId);
+        List<UUID> participantIds = participantRepository.findUserIdsByConversationId(c.getId());
+        boolean isViewerParticipant = participantIds.contains(viewerUserId);
+
+        UUID peerId = null;
+        String customDisplayName = null;
+
+        if (isViewerParticipant) {
+            peerId = participantIds.stream().filter(id -> !id.equals(viewerUserId)).findFirst().orElse(null);
+        } else {
+            List<String> names = new ArrayList<>();
+            for (UUID id : participantIds) {
+                UserProfileNames n = namesByUserId.get(id);
+                String disp = formatDisplayName(id, n);
+                if (disp != null && !disp.isBlank()) {
+                    names.add(disp);
+                }
+            }
+            if (!names.isEmpty()) {
+                customDisplayName = String.join(" ↔ ", names);
+            }
+            peerId = participantIds.isEmpty() ? null : participantIds.get(0);
+        }
+
         UserProfileNames peerNames = peerId != null ? namesByUserId.get(peerId) : null;
         UserProfile peerProfile = peerId != null ? profilesByUserId.get(peerId) : null;
 
@@ -327,7 +385,7 @@ public class ChatServiceImpl implements ChatService {
                 .bookingId(c.getBookingId())
                 .createdAt(c.getCreatedAt())
                 .peerUserId(peerId)
-                .peerDisplayName(formatDisplayName(peerId, peerNames))
+                .peerDisplayName(customDisplayName != null ? customDisplayName : formatDisplayName(peerId, peerNames))
                 .peerAvatarFileId(peerProfile != null ? peerProfile.getAvatarFileId() : null)
                 .lastMessageContent(lastMessage != null ? lastMessage.getContent() : null)
                 .lastMessageAt(lastMessage != null ? lastMessage.getCreatedAt() : null)
@@ -376,11 +434,10 @@ public class ChatServiceImpl implements ChatService {
     private Set<UUID> collectPeerIds(Collection<UUID> conversationIds, UUID viewerUserId) {
         Set<UUID> peerIds = new LinkedHashSet<>();
         for (UUID conversationId : conversationIds) {
-            UUID peerId = resolvePeerId(conversationId, viewerUserId);
-            if (peerId != null) {
-                peerIds.add(peerId);
-            }
+            List<UUID> uids = participantRepository.findUserIdsByConversationId(conversationId);
+            peerIds.addAll(uids);
         }
+        peerIds.remove(viewerUserId);
         return peerIds;
     }
 
@@ -435,6 +492,7 @@ public class ChatServiceImpl implements ChatService {
                 .collect(Collectors.toList());
         return ChatMessageResponse.builder()
                 .id(m.getId())
+                .conversationId(m.getConversationId())
                 .senderId(m.getSenderId())
                 .content(m.getContent())
                 .type(m.getType())
