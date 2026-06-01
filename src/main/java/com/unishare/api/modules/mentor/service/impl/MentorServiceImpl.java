@@ -8,6 +8,8 @@ import com.unishare.api.modules.mentor.entity.MentorProfile;
 import com.unishare.api.modules.mentor.exception.MentorErrorCode;
 import com.unishare.api.modules.mentor.repository.MentorProfileRepository;
 import com.unishare.api.modules.mentor.service.MentorService;
+import com.unishare.api.modules.user.dto.UserProfileNames;
+import com.unishare.api.modules.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -23,6 +27,7 @@ import java.util.UUID;
 public class MentorServiceImpl implements MentorService {
 
     private final MentorProfileRepository mentorProfileRepository;
+    private final UserService userService;
 
     @Override
     @Transactional(readOnly = true)
@@ -68,9 +73,11 @@ public class MentorServiceImpl implements MentorService {
         if (minBasePrice != null && maxBasePrice != null && minBasePrice.compareTo(maxBasePrice) > 0) {
             throw new AppException(MentorErrorCode.INVALID_SEARCH_FILTER, "minBasePrice must be <= maxBasePrice");
         }
-        return mentorProfileRepository.searchByStatusAndFilters(
-                        status, kw, minBasePrice, maxBasePrice, withoutSort(pageable))
-                .map(this::mapToResponse);
+        Page<MentorProfile> page = mentorProfileRepository.searchByStatusAndFilters(
+                status, kw, minBasePrice, maxBasePrice, withoutSort(pageable));
+        List<UUID> userIds = page.getContent().stream().map(MentorProfile::getUserId).toList();
+        Map<UUID, UserProfileNames> namesByUserId = userService.getProfileNamesByUserIds(userIds);
+        return page.map(profile -> mapToResponse(profile, namesByUserId.get(profile.getUserId())));
     }
 
     @Override
@@ -123,8 +130,16 @@ public class MentorServiceImpl implements MentorService {
     }
 
     private MentorResponse mapToResponse(MentorProfile profile) {
+        Map<UUID, UserProfileNames> names =
+                userService.getProfileNamesByUserIds(List.of(profile.getUserId()));
+        return mapToResponse(profile, names.get(profile.getUserId()));
+    }
+
+    private MentorResponse mapToResponse(MentorProfile profile, UserProfileNames names) {
+        String displayName = names != null ? names.toDisplayName() : null;
         return MentorResponse.builder()
                 .userId(profile.getUserId())
+                .displayName(displayName)
                 .headline(profile.getHeadline())
                 .expertise(profile.getExpertise())
                 .basePrice(profile.getBasePrice())

@@ -1,7 +1,5 @@
 package com.unishare.api.infrastructure.security;
 
-import com.unishare.api.common.constants.Capabilities;
-import com.unishare.api.common.constants.Roles;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -9,11 +7,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Custom UserDetails implementation holding userId, email, roles, and capabilities.
+ * UserDetails — authorities chỉ từ role ({@code ROLE_USER}, {@code ROLE_MENTOR}, {@code ROLE_ADMIN}).
  */
 @Getter
 public class CustomUserPrincipal implements UserDetails {
@@ -28,29 +25,26 @@ public class CustomUserPrincipal implements UserDetails {
                                String email,
                                String passwordHash,
                                List<String> roles,
-                               List<String> capabilities,
                                boolean enabled) {
         this.userId = userId;
         this.email = email;
         this.passwordHash = passwordHash;
         this.enabled = enabled;
-
-        List<GrantedAuthority> auths = new java.util.ArrayList<>();
-        roles.forEach(r -> auths.add(new SimpleGrantedAuthority("ROLE_" + r)));
-        capabilities.forEach(c -> auths.add(new SimpleGrantedAuthority(c)));
-        if (hasAdminAccess(roles, capabilities)) {
-            auths.add(new SimpleGrantedAuthority(Capabilities.VIEW_PROFILE));
-            auths.add(new SimpleGrantedAuthority(Capabilities.UPDATE_PROFILE));
-        }
-        this.authorities = java.util.Collections.unmodifiableList(auths);
+        this.authorities = roles.stream()
+                .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
+                .map(GrantedAuthority.class::cast)
+                .toList();
     }
 
-    private boolean hasAdminAccess(List<String> roles, List<String> capabilities) {
-        boolean adminRole = roles.stream()
-                .map(role -> role == null ? "" : role.trim().toUpperCase(Locale.ROOT))
-                .anyMatch(Roles.ADMIN::equals);
-        boolean manageAll = capabilities.stream().anyMatch(Capabilities.MANAGE_ALL::equals);
-        return adminRole || manageAll;
+    /** @deprecated tests legacy — permissions list ignored; use 5-arg constructor. */
+    @Deprecated
+    public CustomUserPrincipal(UUID userId,
+                               String email,
+                               String passwordHash,
+                               List<String> roles,
+                               List<String> ignoredPermissions,
+                               boolean enabled) {
+        this(userId, email, passwordHash, roles, enabled);
     }
 
     @Override

@@ -1,11 +1,10 @@
 package com.unishare.api.infrastructure.security;
 
 import com.unishare.api.common.constants.UserStatuses;
-import com.unishare.api.modules.auth.repository.CapabilityRepository;
-import com.unishare.api.modules.auth.repository.UserCredentialRepository;
-import com.unishare.api.modules.auth.repository.UserRepository;
 import com.unishare.api.modules.auth.entity.User;
 import com.unishare.api.modules.auth.entity.UserCredential;
+import com.unishare.api.modules.auth.repository.UserCredentialRepository;
+import com.unishare.api.modules.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,7 +23,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final UserCredentialRepository userCredentialRepository;
-    private final CapabilityRepository capabilityRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,8 +47,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .map(ur -> ur.getRole().getName())
                 .toList();
 
-        List<String> capabilities = capabilityRepository.findCapabilityNamesByUserId(user.getId());
-
         boolean enabled = UserStatuses.ACTIVE.equalsIgnoreCase(user.getStatus())
                 && Boolean.TRUE.equals(user.getEmailVerified());
 
@@ -59,7 +55,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 user.getEmail(),
                 credential != null ? credential.getPasswordHash() : null,
                 roles,
-                capabilities,
                 enabled
         );
     }

@@ -6,6 +6,7 @@ import com.unishare.api.common.constants.Roles;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
+import com.unishare.api.common.event.MentorApplicationSubmittedEvent;
 import com.unishare.api.common.event.MentorRequestApprovedEvent;
 import com.unishare.api.common.event.MentorRequestRejectedEvent;
 import com.unishare.api.modules.auth.entity.User;
@@ -57,7 +58,9 @@ public class MentorApplicationServiceImpl implements MentorApplicationService {
         app.setUserId(userId);
         applyPayload(app, payload);
         app.setStatus(MentorRequestStatuses.SUBMITTED);
-        return toResponse(applicationRepository.save(app));
+        app = applicationRepository.save(app);
+        eventPublisher.publish(new MentorApplicationSubmittedEvent(app.getId(), userId));
+        return toResponse(app);
     }
 
     @Override
@@ -76,7 +79,9 @@ public class MentorApplicationServiceImpl implements MentorApplicationService {
         latest.setReviewedBy(null);
         latest.setReviewedAt(null);
         latest.setResubmitCount(latest.getResubmitCount() == null ? 1 : latest.getResubmitCount() + 1);
-        return toResponse(applicationRepository.save(latest));
+        latest = applicationRepository.save(latest);
+        eventPublisher.publish(new MentorApplicationSubmittedEvent(latest.getId(), userId));
+        return toResponse(latest);
     }
 
     @Override

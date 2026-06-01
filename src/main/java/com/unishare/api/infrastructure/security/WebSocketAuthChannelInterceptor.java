@@ -33,6 +33,8 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private final ConversationParticipantRepository participantRepository;
 
     private static final Pattern CONVERSATION_TOPIC_PATTERN = Pattern.compile("^/topic/conversations/([^/]+)$");
+    private static final Pattern USER_NOTIFICATION_TOPIC_PATTERN =
+            Pattern.compile("^/topic/users/([^/]+)/notifications$");
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -96,6 +98,23 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             return;
         }
 
+        Matcher userNotifMatcher = USER_NOTIFICATION_TOPIC_PATTERN.matcher(destination);
+        if (userNotifMatcher.matches()) {
+            UUID topicUserId;
+            try {
+                topicUserId = UUID.fromString(userNotifMatcher.group(1));
+            } catch (IllegalArgumentException e) {
+                throw new AccessDeniedException("Invalid user ID in notification topic");
+            }
+            CustomUserPrincipal principal = (CustomUserPrincipal) ((UsernamePasswordAuthenticationToken) user).getPrincipal();
+            if (!principal.getUserId().equals(topicUserId)) {
+                log.warn("[WS-AUTH] User {} attempted unauthorized notification subscription {}", principal.getUserId(), destination);
+                throw new AccessDeniedException("Cannot subscribe to another user's notifications");
+            }
+            log.debug("[WS-AUTH] User {} subscribed to notifications", topicUserId);
+            return;
+        }
+
         Matcher matcher = CONVERSATION_TOPIC_PATTERN.matcher(destination);
         if (matcher.matches()) {
             UUID conversationId;
@@ -132,6 +151,9 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
         // Validate sending to topic/queue is restricted to conversation rooms the user belongs to
         // If client is sending to /app/conversations/{conversationId}/messages or similar
         // We can parse the conversationId and check membership to ensure SEND authorization
+        if (destination.startsWith("/topic/users/") && destination.endsWith("/notifications")) {
+            throw new AccessDeniedException("Notification channel is read-only");
+        }
         if (destination.startsWith("/app/conversations/") || destination.startsWith("/topic/conversations/")) {
             String[] parts = destination.split("/");
             if (parts.length >= 4) {

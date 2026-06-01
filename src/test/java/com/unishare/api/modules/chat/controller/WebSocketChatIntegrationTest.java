@@ -4,7 +4,9 @@ import com.unishare.api.infrastructure.security.JwtService;
 import com.unishare.api.modules.auth.entity.User;
 import com.unishare.api.modules.auth.repository.UserRepository;
 import com.unishare.api.modules.auth.repository.UserCredentialRepository;
-import com.unishare.api.modules.auth.repository.CapabilityRepository;
+import com.unishare.api.modules.auth.entity.Role;
+import com.unishare.api.modules.auth.entity.UserRole;
+import com.unishare.api.common.constants.Roles;
 import com.unishare.api.modules.chat.repository.ConversationParticipantRepository;
 import com.unishare.api.modules.chat.repository.ConversationRepository;
 import com.unishare.api.modules.chat.repository.ChatMessageRepository;
@@ -52,9 +54,6 @@ public class WebSocketChatIntegrationTest {
     private UserCredentialRepository userCredentialRepository;
 
     @MockitoBean
-    private CapabilityRepository capabilityRepository;
-
-    @MockitoBean
     private ConversationParticipantRepository participantRepository;
 
     @MockitoBean
@@ -85,9 +84,17 @@ public class WebSocketChatIntegrationTest {
         user.setStatus(UserStatuses.ACTIVE);
         user.setEmailVerified(true);
 
+        Role userRole = new Role();
+        userRole.setId(UUID.randomUUID());
+        userRole.setName(Roles.USER);
+        UserRole ur = new UserRole();
+        ur.setRole(userRole);
+        ur.getId().setRoleId(userRole.getId());
+        ur.getId().setUserId(activeUserId);
+        user.addUserRole(ur);
+
         when(userRepository.findById(activeUserId)).thenReturn(Optional.of(user));
         when(userCredentialRepository.findByUserId(activeUserId)).thenReturn(Optional.empty());
-        when(capabilityRepository.findCapabilityNamesByUserId(activeUserId)).thenReturn(List.of("VIEW_CONVERSATION", "SEND_MESSAGE"));
     }
 
     @Test

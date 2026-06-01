@@ -30,7 +30,7 @@ public class BookingController {
         private final BookingService bookingService;
 
         @Operation(summary = "Booking của tôi (mentee/buyer)")
-        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_BOOKING)")
+        @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
         @GetMapping("/me/buyer")
         public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> myBookingsAsBuyer(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -40,7 +40,7 @@ public class BookingController {
         }
 
         @Operation(summary = "Booking của tôi (mentor)")
-        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_OWN_BOOKINGS)")
+        @PreAuthorize("hasRole('MENTOR')")
         @GetMapping("/me/mentor")
         public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> myBookingsAsMentor(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -50,7 +50,7 @@ public class BookingController {
         }
 
         @Operation(summary = "Chi tiết booking")
-        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_BOOKING)")
+        @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
         @GetMapping("/{id}")
         public ResponseEntity<ApiResponse<BookingResponse>> get(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -60,7 +60,7 @@ public class BookingController {
         }
 
         @Operation(summary = "Cập nhật phiên (session)")
-        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).MANAGE_SESSIONS)")
+        @PreAuthorize("hasRole('MENTOR')")
         @PatchMapping("/{bookingId}/sessions/{sessionId}")
         public ResponseEntity<ApiResponse<BookingSessionResponse>> updateSession(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -73,7 +73,7 @@ public class BookingController {
         }
 
         @Operation(summary = "Thêm minh chứng buổi học")
-        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).MANAGE_SESSIONS)")
+        @PreAuthorize("hasRole('MENTOR')")
         @PostMapping("/{bookingId}/sessions/{sessionId}/evidences")
         public ResponseEntity<ApiResponse<EvidenceResponse>> addEvidence(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -86,7 +86,7 @@ public class BookingController {
         }
 
         @Operation(summary = "Hủy booking")
-        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_BOOKING)")
+        @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
         @PostMapping("/{bookingId}/cancel")
         public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -98,7 +98,7 @@ public class BookingController {
         }
 
         @Operation(summary = "Hoàn thành buổi học")
-        @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).MANAGE_SESSIONS)")
+        @PreAuthorize("hasRole('MENTOR')")
         @PostMapping("/{bookingId}/sessions/{sessionId}/complete")
         public ResponseEntity<ApiResponse<BookingSessionResponse>> completeSession(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -107,5 +107,19 @@ public class BookingController {
                 return ResponseEntity.ok(ApiResponse.<BookingSessionResponse>build()
                                 .withData(bookingService.completeSession(bookingId, sessionId, principal.getUserId()))
                                 .withMessage("Hoan thanh buoi hoc thanh cong"));
+        }
+
+        @Operation(summary = "Xác nhận hoàn thành buổi học (mentee/mentor)")
+        @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
+        @PostMapping("/{bookingId}/sessions/{sessionId}/confirm-completion")
+        public ResponseEntity<ApiResponse<BookingSessionResponse>> confirmSessionCompletion(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @PathVariable("sessionId") UUID sessionId,
+                        @Valid @RequestBody ConfirmSessionCompletionRequest request) {
+                return ResponseEntity.ok(ApiResponse.<BookingSessionResponse>build()
+                                .withData(bookingService.confirmSessionCompletion(
+                                                bookingId, sessionId, principal.getUserId(), request))
+                                .withMessage("Da ghi nhan xac nhan buoi hoc"));
         }
 }

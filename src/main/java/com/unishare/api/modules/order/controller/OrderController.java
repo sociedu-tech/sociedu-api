@@ -36,7 +36,7 @@ public class OrderController {
      * Đặt mua: tạo đơn pending_payment + paymentUrl VNPay.
      */
     @Operation(summary = "Checkout — tạo đơn & URL thanh toán")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).CREATE_PAYMENT)")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PostMapping("/checkout")
     public ResponseEntity<ApiResponse<OrderResponse>> checkout(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -47,14 +47,14 @@ public class OrderController {
                 .orElse(http.getRemoteAddr());
         return ResponseEntity.ok(ApiResponse.<OrderResponse>build()
                 .withData(orderService.checkout(principal.getUserId(), request, ip))
-                .withMessage("Tạo đơn thành công — mở paymentUrl (mock: thanh toán tự thành công)"));
+                .withMessage("Tạo đơn thành công — mở paymentUrl để thanh toán qua VNPay"));
     }
 
     /**
      * Lấy danh sách đơn hàng của mình
      */
     @Operation(summary = "Danh sách đơn của tôi")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PAYMENT)")
+    @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getMyOrders(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -63,16 +63,44 @@ public class OrderController {
                 .withData(orderService.getMyOrders(principal.getUserId(), pageable)));
     }
 
+    @Operation(summary = "Đơn hàng gói của mentor (học viên mua)")
+    @PreAuthorize("hasRole('MENTOR')")
+    @GetMapping("/me/incoming")
+    public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getIncomingOrders(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.<PageResponse<OrderResponse>>build()
+                .withData(orderService.getIncomingOrdersForMentor(principal.getUserId(), pageable)));
+    }
+
     /**
      * Chi tiết đơn hàng
      */
     @Operation(summary = "Chi tiết đơn theo id")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PAYMENT)")
+    @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.<OrderResponse>build()
                 .withData(orderService.getOrderById(id, principal.getUserId())));
+    }
+
+    /**
+     * Tạo lại URL thanh toán cho đơn pending / failed / expired.
+     */
+    @Operation(summary = "Thanh toán lại đơn")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PostMapping("/{id}/pay")
+    public ResponseEntity<ApiResponse<OrderResponse>> repay(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable UUID id,
+            HttpServletRequest http) {
+        String ip = Optional.ofNullable(http.getHeader("X-Forwarded-For"))
+                .map(s -> s.split(",")[0].trim())
+                .orElse(http.getRemoteAddr());
+        return ResponseEntity.ok(ApiResponse.<OrderResponse>build()
+                .withData(orderService.repay(id, principal.getUserId(), ip))
+                .withMessage("Mở paymentUrl để tiếp tục thanh toán"));
     }
 }

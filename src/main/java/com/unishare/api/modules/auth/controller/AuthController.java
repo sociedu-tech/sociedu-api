@@ -115,7 +115,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.<Void>build().withMessage("Đặt lại mật khẩu thành công."));
     }
 
-    /** GET /api/v1/auth/me — Thông tin phiên hiện tại (user + roles + capabilities). */
+    /** GET /api/v1/auth/me — Thông tin phiên hiện tại (user + roles). */
     @Operation(summary = "Thông tin phiên hiện tại")
     @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
     @PreAuthorize("isAuthenticated()")

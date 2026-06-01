@@ -85,7 +85,7 @@ public class PaymentController {
      */
     @Operation(summary = "Payment theo orderId")
     @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PAYMENT)")
+    @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
     @GetMapping("/order/{orderId}")
     public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentByOrder(@PathVariable UUID orderId) {
         return ResponseEntity.ok(ApiResponse.<PaymentResponse>build()

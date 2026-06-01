@@ -13,8 +13,24 @@ public class SessionStatusTransitionPolicy {
 
     private static final Map<String, Set<String>> ALLOWED_TRANSITIONS = Map.of(
             SessionStatuses.PENDING, Set.of(SessionStatuses.SCHEDULED, SessionStatuses.CANCELED),
-            SessionStatuses.SCHEDULED, Set.of(IN_PROGRESS, SessionStatuses.COMPLETED, SessionStatuses.CANCELED, SessionStatuses.NO_SHOW),
-            IN_PROGRESS, Set.of(SessionStatuses.COMPLETED, SessionStatuses.CANCELED, SessionStatuses.NO_SHOW),
+            SessionStatuses.SCHEDULED, Set.of(
+                    IN_PROGRESS,
+                    SessionStatuses.AWAITING_CONFIRMATION,
+                    SessionStatuses.COMPLETED,
+                    SessionStatuses.DISPUTED,
+                    SessionStatuses.CANCELED,
+                    SessionStatuses.NO_SHOW),
+            IN_PROGRESS, Set.of(
+                    SessionStatuses.AWAITING_CONFIRMATION,
+                    SessionStatuses.COMPLETED,
+                    SessionStatuses.DISPUTED,
+                    SessionStatuses.CANCELED,
+                    SessionStatuses.NO_SHOW),
+            SessionStatuses.AWAITING_CONFIRMATION, Set.of(
+                    SessionStatuses.COMPLETED,
+                    SessionStatuses.DISPUTED,
+                    SessionStatuses.CANCELED),
+            SessionStatuses.DISPUTED, Collections.emptySet(),
             SessionStatuses.COMPLETED, Collections.emptySet(),
             SessionStatuses.CANCELED, Collections.emptySet(),
             SessionStatuses.NO_SHOW, Collections.emptySet()

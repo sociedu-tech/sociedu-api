@@ -17,5 +17,9 @@ public class BookingSessionResponse {
     private Instant completedAt;
     private String status;
     private String meetingUrl;
+    private Boolean menteeCompletionAck;
+    private Boolean mentorCompletionAck;
+    private Instant menteeAckAt;
+    private Instant mentorAckAt;
     private List<EvidenceResponse> evidences;
 }

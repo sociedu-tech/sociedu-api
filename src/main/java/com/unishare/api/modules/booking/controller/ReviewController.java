@@ -33,7 +33,7 @@ public class ReviewController {
 
     @Operation(summary = "Gửi đánh giá booking")
     @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_BOOKING)")
+    @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
     @PostMapping("/api/v1/bookings/{bookingId}/reviews")
     public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
             @AuthenticationPrincipal CustomUserPrincipal principal,

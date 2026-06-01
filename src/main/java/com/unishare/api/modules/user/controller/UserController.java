@@ -28,7 +28,7 @@ public class UserController {
     private final UserService userService;
 
     // Profile
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
             @AuthenticationPrincipal CustomUserPrincipal principal) {
@@ -37,7 +37,7 @@ public class UserController {
                 .withMessage("Success"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> updateProfile(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -48,7 +48,7 @@ public class UserController {
     }
 
     // Education
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/educations")
     public ResponseEntity<ApiResponse<List<UserEducationResponse>>> getEducations(
             @AuthenticationPrincipal CustomUserPrincipal principal) {
@@ -56,7 +56,7 @@ public class UserController {
                 .withData(userService.getEducations(principal.getUserId())));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/educations")
     public ResponseEntity<ApiResponse<UserEducationResponse>> addEducation(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -66,7 +66,7 @@ public class UserController {
                 .withMessage("Education added successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/educations/{id}")
     public ResponseEntity<ApiResponse<UserEducationResponse>> updateEducation(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -77,7 +77,7 @@ public class UserController {
                 .withMessage("Education updated successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/educations/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteEducation(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -87,7 +87,7 @@ public class UserController {
     }
 
     // Language
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/languages")
     public ResponseEntity<ApiResponse<List<UserLanguageResponse>>> getLanguages(
             @AuthenticationPrincipal CustomUserPrincipal principal) {
@@ -95,7 +95,7 @@ public class UserController {
                 .withData(userService.getLanguages(principal.getUserId())));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/languages")
     public ResponseEntity<ApiResponse<UserLanguageResponse>> addLanguage(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -105,7 +105,7 @@ public class UserController {
                 .withMessage("Language added successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/languages/{id}")
     public ResponseEntity<ApiResponse<UserLanguageResponse>> updateLanguage(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -116,7 +116,7 @@ public class UserController {
                 .withMessage("Language updated successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/languages/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteLanguage(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -126,7 +126,7 @@ public class UserController {
     }
 
     // Experience
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/experiences")
     public ResponseEntity<ApiResponse<List<UserExperienceResponse>>> getExperiences(
             @AuthenticationPrincipal CustomUserPrincipal principal) {
@@ -134,7 +134,7 @@ public class UserController {
                 .withData(userService.getExperiences(principal.getUserId())));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/experiences")
     public ResponseEntity<ApiResponse<UserExperienceResponse>> addExperience(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -144,7 +144,7 @@ public class UserController {
                 .withMessage("Experience added successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/experiences/{id}")
     public ResponseEntity<ApiResponse<UserExperienceResponse>> updateExperience(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -155,7 +155,7 @@ public class UserController {
                 .withMessage("Experience updated successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/experiences/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteExperience(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -165,7 +165,7 @@ public class UserController {
     }
 
     // Certificate
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/certificates")
     public ResponseEntity<ApiResponse<List<UserCertificateResponse>>> getCertificates(
             @AuthenticationPrincipal CustomUserPrincipal principal) {
@@ -173,7 +173,7 @@ public class UserController {
                 .withData(userService.getCertificates(principal.getUserId())));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/certificates")
     public ResponseEntity<ApiResponse<UserCertificateResponse>> addCertificate(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -183,7 +183,7 @@ public class UserController {
                 .withMessage("Certificate added successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/certificates/{id}")
     public ResponseEntity<ApiResponse<UserCertificateResponse>> updateCertificate(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -194,7 +194,7 @@ public class UserController {
                 .withMessage("Certificate updated successfully"));
     }
 
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPDATE_PROFILE)")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/certificates/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCertificate(
             @AuthenticationPrincipal CustomUserPrincipal principal,

@@ -49,7 +49,6 @@ class AuthServiceOtpFlowTest {
     @Mock private RoleRepository roleRepository;
     @Mock private RefreshTokenRepository refreshTokenRepository;
     @Mock private OtpTokenRepository otpTokenRepository;
-    @Mock private CapabilityRepository capabilityRepository;
     @Mock private JwtService jwtService;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private DomainEventPublisher eventPublisher;

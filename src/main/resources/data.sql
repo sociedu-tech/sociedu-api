@@ -9,81 +9,13 @@
 -- ==========================================
 
 -- ==========================================
--- ROLES & CAPABILITIES
+-- ROLES
 -- ==========================================
 INSERT INTO roles (id, name)
 VALUES ('f93d94ef-1fe8-48c4-b240-d9b1001affb1', 'USER'),
        ('d7af84b1-731d-48dc-bcd6-cebe8e78b279', 'MENTOR'),
        ('29056341-f10b-4d2c-bb32-c6b82cf897bb', 'ADMIN')
 ON CONFLICT (name) DO NOTHING;
-
--- Lưu ý: entity dùng @GeneratedValue(strategy = UUID) nên cột id KHÔNG có DEFAULT phía DB.
--- Khi seed bằng SQL thuần phải tự sinh UUID (Postgres 13+ đã built-in gen_random_uuid).
-INSERT INTO capabilities (id, name)
-VALUES (gen_random_uuid(), 'UPDATE_PROFILE'),
-       (gen_random_uuid(), 'VIEW_PROFILE'),
-       (gen_random_uuid(), 'BOOK_SESSION'),
-       (gen_random_uuid(), 'CANCEL_BOOKING'),
-       (gen_random_uuid(), 'WRITE_REVIEW'),
-       (gen_random_uuid(), 'CREATE_SERVICE_PACKAGE'),
-       (gen_random_uuid(), 'UPDATE_OWN_SERVICE_PACKAGE'),
-       (gen_random_uuid(), 'DELETE_OWN_SERVICE_PACKAGE'),
-       (gen_random_uuid(), 'MANAGE_PACKAGE_CURRICULUM'),
-       (gen_random_uuid(), 'VIEW_OWN_BOOKINGS'),
-       (gen_random_uuid(), 'MANAGE_OWN_BOOKINGS'),
-       (gen_random_uuid(), 'MANAGE_SESSIONS'),
-       (gen_random_uuid(), 'VIEW_EARNINGS'),
-       (gen_random_uuid(), 'VIEW_BOOKING'),
-       (gen_random_uuid(), 'JOIN_SESSION'),
-       (gen_random_uuid(), 'START_SESSION'),
-       (gen_random_uuid(), 'COMPLETE_SESSION'),
-       (gen_random_uuid(), 'CREATE_PAYMENT'),
-       (gen_random_uuid(), 'VIEW_PAYMENT'),
-       (gen_random_uuid(), 'REQUEST_PAYOUT'),
-       (gen_random_uuid(), 'VIEW_PAYOUT'),
-       (gen_random_uuid(), 'REFUND_REQUEST'),
-       (gen_random_uuid(), 'SEND_MESSAGE'),
-       (gen_random_uuid(), 'VIEW_CONVERSATION'),
-       (gen_random_uuid(), 'UPLOAD_ATTACHMENT'),
-       (gen_random_uuid(), 'CREATE_REPORT'),
-       (gen_random_uuid(), 'VIEW_OWN_REPORT'),
-       (gen_random_uuid(), 'CREATE_DISPUTE'),
-       (gen_random_uuid(), 'VIEW_OWN_DISPUTE'),
-       (gen_random_uuid(), 'MANAGE_USERS'),
-       (gen_random_uuid(), 'MANAGE_MENTORS'),
-       (gen_random_uuid(), 'MANAGE_ALL_BOOKINGS'),
-       (gen_random_uuid(), 'MANAGE_PAYMENTS'),
-       (gen_random_uuid(), 'RESOLVE_REPORT'),
-       (gen_random_uuid(), 'RESOLVE_DISPUTE'),
-       (gen_random_uuid(), 'VIEW_SYSTEM_METRICS'),
-       (gen_random_uuid(), 'MANAGE_ALL')
-ON CONFLICT (name) DO NOTHING;
-
-INSERT INTO role_capabilities (role_id, capability_id)
-SELECT 'f93d94ef-1fe8-48c4-b240-d9b1001affb1', id
-FROM capabilities
-WHERE name IN ('UPDATE_PROFILE', 'VIEW_PROFILE', 'BOOK_SESSION', 'CANCEL_BOOKING', 'WRITE_REVIEW',
-               'VIEW_BOOKING', 'JOIN_SESSION', 'CREATE_PAYMENT', 'VIEW_PAYMENT',
-               'SEND_MESSAGE', 'VIEW_CONVERSATION', 'UPLOAD_ATTACHMENT',
-               'CREATE_REPORT', 'VIEW_OWN_REPORT', 'CREATE_DISPUTE', 'VIEW_OWN_DISPUTE')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_capabilities (role_id, capability_id)
-SELECT 'd7af84b1-731d-48dc-bcd6-cebe8e78b279', id
-FROM capabilities
-WHERE name IN ('UPDATE_PROFILE', 'VIEW_PROFILE', 'BOOK_SESSION', 'CANCEL_BOOKING', 'WRITE_REVIEW',
-               'CREATE_SERVICE_PACKAGE', 'UPDATE_OWN_SERVICE_PACKAGE', 'DELETE_OWN_SERVICE_PACKAGE',
-               'MANAGE_PACKAGE_CURRICULUM', 'VIEW_OWN_BOOKINGS', 'MANAGE_OWN_BOOKINGS',
-               'MANAGE_SESSIONS', 'VIEW_EARNINGS',
-               'VIEW_BOOKING', 'JOIN_SESSION', 'START_SESSION', 'COMPLETE_SESSION',
-               'VIEW_PAYMENT', 'REQUEST_PAYOUT', 'VIEW_PAYOUT',
-               'SEND_MESSAGE', 'VIEW_CONVERSATION', 'UPLOAD_ATTACHMENT')
-ON CONFLICT DO NOTHING;
-
-INSERT INTO role_capabilities (role_id, capability_id)
-SELECT '29056341-f10b-4d2c-bb32-c6b82cf897bb', id
-FROM capabilities
-ON CONFLICT DO NOTHING;
 
 -- ==========================================
 -- USERS (10 USER + 10 MENTOR + 10 ADMIN), password = Password123!

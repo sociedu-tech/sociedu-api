@@ -13,19 +13,6 @@ CREATE TABLE roles
     name VARCHAR(100) UNIQUE
 );
 
-CREATE TABLE capabilities
-(
-    id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(100) UNIQUE
-);
-
-CREATE TABLE role_capabilities
-(
-    role_id       UUID REFERENCES roles (id) ON DELETE CASCADE,
-    capability_id UUID REFERENCES capabilities (id) ON DELETE CASCADE,
-    PRIMARY KEY (role_id, capability_id)
-);
-
 CREATE TABLE users
 (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -382,6 +369,10 @@ CREATE TABLE booking_sessions
     canceled_by       UUID,
     canceled_at       TIMESTAMP,
     cancel_reason     TEXT,
+    mentee_completion_ack BOOLEAN,
+    mentor_completion_ack BOOLEAN,
+    mentee_ack_at     TIMESTAMP,
+    mentor_ack_at     TIMESTAMP,
     version           BIGINT      NOT NULL DEFAULT 0
 );
 

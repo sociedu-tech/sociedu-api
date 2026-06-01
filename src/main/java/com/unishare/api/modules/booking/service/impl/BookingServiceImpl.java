@@ -303,6 +303,15 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public BookingSessionResponse completeSession(UUID bookingId, UUID sessionId, UUID actorUserId) {
+        ConfirmSessionCompletionRequest req = new ConfirmSessionCompletionRequest();
+        req.setCompleted(true);
+        return confirmSessionCompletion(bookingId, sessionId, actorUserId, req);
+    }
+
+    @Override
+    @Transactional
+    public BookingSessionResponse confirmSessionCompletion(
+            UUID bookingId, UUID sessionId, UUID actorUserId, ConfirmSessionCompletionRequest req) {
         Booking b = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
         assertAccess(b, actorUserId);
@@ -313,43 +322,85 @@ public class BookingServiceImpl implements BookingService {
             throw new AppException(BookingErrorCode.SESSION_NOT_FOUND);
         }
 
-        // Idempotent: if already completed, return current state
-        if (SessionStatuses.COMPLETED.equals(s.getStatus())) {
-            return mapSession(s);
+        if (SessionStatuses.COMPLETED.equals(s.getStatus())
+                || SessionStatuses.CANCELED.equals(s.getStatus())) {
+            throw new AppException(BookingErrorCode.SESSION_ALREADY_FINALIZED,
+                    "Buổi học đã kết thúc, không thể xác nhận thêm.");
         }
 
-        // Validate transition
+        if (SessionStatuses.DISPUTED.equals(s.getStatus())) {
+            throw new AppException(BookingErrorCode.SESSION_ALREADY_FINALIZED,
+                    "Buổi học đang tranh chấp. Vui lòng dùng báo cáo kiểm duyệt.");
+        }
+
+        if (s.getScheduledAt() != null && Instant.now().isBefore(s.getScheduledAt())) {
+            throw new AppException(BookingErrorCode.SESSION_CONFIRM_TOO_EARLY,
+                    "Chưa đến thời hạn buổi học, chưa thể xác nhận.");
+        }
+
+        boolean isMentor = b.getMentorId().equals(actorUserId);
+        boolean isBuyer = b.getBuyerId().equals(actorUserId);
+        boolean completed = Boolean.TRUE.equals(req.getCompleted());
+
+        if (isBuyer) {
+            if (s.getMenteeCompletionAck() != null
+                    && s.getMenteeCompletionAck().equals(completed)) {
+                return mapSession(s);
+            }
+            s.setMenteeCompletionAck(completed);
+            s.setMenteeAckAt(Instant.now());
+        } else if (isMentor) {
+            if (s.getMentorCompletionAck() != null
+                    && s.getMentorCompletionAck().equals(completed)) {
+                return mapSession(s);
+            }
+            s.setMentorCompletionAck(completed);
+            s.setMentorAckAt(Instant.now());
+        }
+
+        applyCompletionAckOutcome(b, s, actorUserId);
+        sessionRepository.save(s);
+        return mapSession(s);
+    }
+
+    private void applyCompletionAckOutcome(Booking b, BookingSession s, UUID actorUserId) {
+        Boolean menteeAck = s.getMenteeCompletionAck();
+        Boolean mentorAck = s.getMentorCompletionAck();
+
+        if (Boolean.FALSE.equals(menteeAck) || Boolean.FALSE.equals(mentorAck)) {
+            transitionSessionStatus(s, SessionStatuses.DISPUTED);
+            eventPublisher.publish(new com.unishare.api.common.event.SessionDisputedEvent(
+                    b.getId(), s.getId(), b.getBuyerId(), b.getMentorId()));
+            return;
+        }
+
+        if (Boolean.TRUE.equals(menteeAck) && Boolean.TRUE.equals(mentorAck)) {
+            transitionSessionStatus(s, SessionStatuses.COMPLETED);
+            s.setCompletedAt(Instant.now());
+            checkAndCompleteBooking(b);
+            return;
+        }
+
+        if (Boolean.TRUE.equals(menteeAck) || Boolean.TRUE.equals(mentorAck)) {
+            if (!SessionStatuses.AWAITING_CONFIRMATION.equals(s.getStatus())) {
+                transitionSessionStatus(s, SessionStatuses.AWAITING_CONFIRMATION);
+            }
+            eventPublisher.publish(new com.unishare.api.common.event.SessionAwaitingConfirmationEvent(
+                    b.getId(), s.getId(), b.getBuyerId(), b.getMentorId(), actorUserId));
+        }
+    }
+
+    private void transitionSessionStatus(BookingSession s, String targetStatus) {
+        if (targetStatus.equals(s.getStatus())) {
+            return;
+        }
         try {
             com.unishare.api.modules.booking.policy.SessionStatusTransitionPolicy.validateTransition(
-                    s.getStatus(), SessionStatuses.COMPLETED);
+                    s.getStatus(), targetStatus);
         } catch (IllegalStateException e) {
             throw new AppException(BookingErrorCode.INVALID_STATE_TRANSITION, e.getMessage());
         }
-
-        // Validation: must have started (actualStartedAt not null)
-        if (s.getActualStartedAt() == null) {
-            throw new AppException(BookingErrorCode.INVALID_STATE_TRANSITION,
-                    "Session must be started (IN_PROGRESS) before completing.");
-        }
-
-        // Validation: min 15 minutes
-        if (s.getScheduledAt() != null) {
-            Instant minCompletionTime = s.getScheduledAt().plus(Duration.ofMinutes(15));
-            if (Instant.now().isBefore(minCompletionTime)) {
-                throw new AppException(BookingErrorCode.INVALID_STATE_TRANSITION,
-                        "Cannot complete session before minimum duration (15 minutes).");
-            }
-        }
-
-        s.setStatus(SessionStatuses.COMPLETED);
-        s.setActualEndedAt(Instant.now());
-        s.setCompletedAt(Instant.now());
-        sessionRepository.save(s);
-
-        // Auto-complete booking if all sessions are done
-        checkAndCompleteBooking(b);
-
-        return mapSession(s);
+        s.setStatus(targetStatus);
     }
 
     private void assertAccess(Booking b, UUID userId) {
@@ -382,6 +433,10 @@ public class BookingServiceImpl implements BookingService {
                 .completedAt(s.getCompletedAt())
                 .status(s.getStatus())
                 .meetingUrl(s.getMeetingUrl())
+                .menteeCompletionAck(s.getMenteeCompletionAck())
+                .mentorCompletionAck(s.getMentorCompletionAck())
+                .menteeAckAt(s.getMenteeAckAt())
+                .mentorAckAt(s.getMentorAckAt())
                 .evidences(evs.stream().map(e -> EvidenceResponse.builder()
                         .id(e.getId())
                         .uploadedBy(e.getUploadedBy())

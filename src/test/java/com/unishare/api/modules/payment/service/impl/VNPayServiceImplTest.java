@@ -51,8 +51,6 @@ class VNPayServiceImplTest {
         ReflectionTestUtils.setField(service, "hashSecret", HASH_SECRET);
         ReflectionTestUtils.setField(service, "vnpayUrl", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html");
         ReflectionTestUtils.setField(service, "returnUrl", "https://api.example.test/api/v1/payments/vnpay/return");
-        ReflectionTestUtils.setField(service, "frontendReturnUrl", "https://web.example.test/payment-result");
-        ReflectionTestUtils.setField(service, "mockEnabled", false);
     }
 
     @Test
@@ -106,26 +104,6 @@ class VNPayServiceImplTest {
         assertTrue(success);
         verify(paymentTransactionRepository, never()).save(any());
         verify(eventPublisher, never()).publish(any());
-    }
-
-    @Test
-    void createPayment_WhenMockEnabled_ShouldAutoConfirmAndReturnFrontendUrl() {
-        ReflectionTestUtils.setField(service, "mockEnabled", true);
-        UUID orderId = UUID.randomUUID();
-        when(paymentTransactionRepository.save(any(PaymentTransaction.class))).thenAnswer(inv -> {
-            PaymentTransaction txn = inv.getArgument(0);
-            txn.setId(UUID.randomUUID());
-            return txn;
-        });
-
-        var response = service.createPayment(orderId, new BigDecimal("150000.00"), "Unishare order", "127.0.0.1");
-
-        assertEquals(PaymentTransactionStatuses.SUCCESS, response.getStatus());
-        assertTrue(Boolean.TRUE.equals(response.getMockPayment()));
-        assertNotNull(response.getPaymentUrl());
-        assertTrue(response.getPaymentUrl().contains("payment-result"));
-        assertTrue(response.getPaymentUrl().contains("orderId=" + orderId));
-        verify(eventPublisher).publish(any(PaymentProcessedEvent.class));
     }
 
     @Test

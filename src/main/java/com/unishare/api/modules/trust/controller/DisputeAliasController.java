@@ -31,7 +31,7 @@ public class DisputeAliasController {
     private final TrustService trustService;
 
     @Operation(summary = "Tạo tranh chấp (Alias)")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).CREATE_DISPUTE)")
+    @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<DisputeResponse>> createDispute(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -41,7 +41,7 @@ public class DisputeAliasController {
     }
 
     @Operation(summary = "Tranh chấp của tôi (Alias)")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_OWN_DISPUTE)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<PageResponse<DisputeResponse>>> myDisputes(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -52,7 +52,7 @@ public class DisputeAliasController {
 
     @Operation(summary = "Giải quyết tranh chấp (Alias)")
     @PutMapping("/{disputeId}/resolve")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).RESOLVE_DISPUTE)")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DisputeResponse>> resolveDispute(
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable UUID disputeId,

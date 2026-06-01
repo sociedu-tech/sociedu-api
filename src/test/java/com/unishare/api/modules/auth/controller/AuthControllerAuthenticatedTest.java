@@ -164,7 +164,6 @@ class AuthControllerAuthenticatedTest {
                     .lastName("User")
                     .fullName("Test User")
                     .roles(List.of("USER"))
-                    .capabilities(List.of("VIEW_PROFILE"))
                     .createdAt(Instant.now())
                     .build();
 

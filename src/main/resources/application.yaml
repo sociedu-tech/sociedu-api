@@ -76,6 +76,10 @@ app:
       - "${APP_FRONTEND_BASE_URL}"
   logging:
     service-method-timing: false
+  events:
+    integration:
+      # logging (dev) | none | kafka (stub — cắm KafkaTemplate sau)
+      type: ${APP_EVENTS_INTEGRATION_TYPE:logging}
   auth:
     email-verification-path: ${APP_AUTH_EMAIL_VERIFICATION_PATH:/verify-email}
     password-reset-path: ${APP_AUTH_PASSWORD_RESET_PATH:/reset-password}
@@ -89,6 +93,9 @@ app:
     from: ${MAIL_FROM}
     brand-name: ${APP_MAIL_BRAND_NAME:UniShare}
     otp-valid-minutes: ${APP_MAIL_OTP_VALID_MINUTES:10}
+  order:
+    # Thời gian chờ thanh toán sau checkout (khớp VNPay ~15 phút). Ghi đè: APP_ORDER_PAYMENT_EXPIRATION_MINUTES
+    payment-expiration-minutes: ${APP_ORDER_PAYMENT_EXPIRATION_MINUTES:15}
 
 cloudinary:
   cloud-name: ${CLOUDINARY_NAME}
@@ -99,8 +106,6 @@ vnpay:
   tmn-code: ${VNP_TMN_CODE}
   hash-secret: ${VNP_HASH_SECRET}
   url: ${VNP_URL}
-  # true: bỏ qua cổng VNPay, tự ghi nhận thanh toán thành công khi checkout (dev). Prod: VNP_MOCK_ENABLED=false
-  mock-enabled: ${VNP_MOCK_ENABLED:true}
   # Mặc định: callback BE sau thanh toán — nối từ app.urls.api-public-base (chỉnh một chỗ). Ghi đè: VNP_RETURN_URL
   return-url: ${VNP_RETURN_URL:${app.urls.api-public-base}/api/v1/payments/vnpay/return}
   frontend-return-url: ${VNP_FRONTEND_RETURN_URL:${app.urls.frontend-base}/payment-result}

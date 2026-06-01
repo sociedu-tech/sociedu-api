@@ -31,7 +31,7 @@ public class ReportAliasController {
     private final TrustService trustService;
 
     @Operation(summary = "Tạo báo cáo kiểm duyệt (Alias)")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).CREATE_REPORT)")
+    @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<ModerationReportResponse>> createReport(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -41,7 +41,7 @@ public class ReportAliasController {
     }
 
     @Operation(summary = "Báo cáo của tôi (Alias)")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_OWN_REPORT)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<PageResponse<ModerationReportResponse>>> myReports(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -51,7 +51,7 @@ public class ReportAliasController {
     }
 
     @Operation(summary = "Thêm bằng chứng cho báo cáo (Alias)")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).CREATE_REPORT)")
+    @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
     @PostMapping("/{reportId}/evidences")
     public ResponseEntity<ApiResponse<ModerationReportResponse>> addEvidence(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -63,7 +63,7 @@ public class ReportAliasController {
 
     @Operation(summary = "Giải quyết báo cáo (Alias)")
     @PutMapping("/{reportId}/resolve")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).RESOLVE_REPORT)")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ModerationReportResponse>> resolveReport(
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PathVariable UUID reportId,

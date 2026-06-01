@@ -24,4 +24,7 @@ public interface BookingService {
     BookingResponse cancelBooking(UUID bookingId, UUID actorUserId, CancelBookingRequest req);
 
     BookingSessionResponse completeSession(UUID bookingId, UUID sessionId, UUID actorUserId);
+
+    BookingSessionResponse confirmSessionCompletion(
+            UUID bookingId, UUID sessionId, UUID actorUserId, ConfirmSessionCompletionRequest req);
 }

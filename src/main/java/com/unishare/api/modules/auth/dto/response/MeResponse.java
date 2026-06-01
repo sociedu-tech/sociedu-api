@@ -21,6 +21,5 @@ public class MeResponse {
     private String headline;
     private String avatarUrl;
     private List<String> roles;
-    private List<String> capabilities;
     private Instant createdAt;
 }

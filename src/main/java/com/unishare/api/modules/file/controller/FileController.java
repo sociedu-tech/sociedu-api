@@ -27,7 +27,7 @@ public class FileController {
     private final FileService fileService;
 
     @Operation(summary = "Upload file")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).UPLOAD_ATTACHMENT)")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping(value = {"", "/upload"}, consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<FileUploadResponse>> upload(
             @AuthenticationPrincipal CustomUserPrincipal principal,

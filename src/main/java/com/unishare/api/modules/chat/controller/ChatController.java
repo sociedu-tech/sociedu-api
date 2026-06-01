@@ -31,7 +31,7 @@ public class ChatController {
     private final ChatService chatService;
 
     @Operation(summary = "Tạo conversation")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_CONVERSATION)")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping(value = {"/api/v1/chat/conversations", "/api/v1/conversations"})
     public ResponseEntity<ApiResponse<ConversationResponse>> create(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -41,7 +41,7 @@ public class ChatController {
     }
 
     @Operation(summary = "Danh sách conversation của tôi")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_CONVERSATION)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping(value = {"/api/v1/chat/conversations", "/api/v1/conversations"})
     public ResponseEntity<ApiResponse<PageResponse<ConversationResponse>>> listConversations(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -51,7 +51,7 @@ public class ChatController {
     }
 
     @Operation(summary = "Lấy chi tiết conversation")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_CONVERSATION)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping(value = {"/api/v1/chat/conversations/{conversationId}", "/api/v1/conversations/{conversationId}"})
     public ResponseEntity<ApiResponse<ConversationResponse>> getConversation(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -61,7 +61,7 @@ public class ChatController {
     }
 
     @Operation(summary = "Tin nhắn trong conversation (Không phân trang - Tương thích ngược)", deprecated = true)
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_CONVERSATION)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/api/v1/chat/conversations/{conversationId}/messages")
     @Deprecated
     public ResponseEntity<ApiResponse<List<ChatMessageResponse>>> listMessagesOld(
@@ -72,7 +72,7 @@ public class ChatController {
     }
 
     @Operation(summary = "Tin nhắn trong conversation (Có phân trang)")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).VIEW_CONVERSATION)")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/api/v1/conversations/{conversationId}/messages")
     public ResponseEntity<ApiResponse<Page<ChatMessageResponse>>> listMessages(
             @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -83,7 +83,7 @@ public class ChatController {
     }
 
     @Operation(summary = "Gửi tin nhắn")
-    @PreAuthorize("hasAuthority(T(com.unishare.api.common.constants.Capabilities).SEND_MESSAGE)")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping(value = {"/api/v1/chat/conversations/{conversationId}/messages", "/api/v1/conversations/{conversationId}/messages"})
     public ResponseEntity<ApiResponse<ChatMessageResponse>> send(
             @AuthenticationPrincipal CustomUserPrincipal principal,

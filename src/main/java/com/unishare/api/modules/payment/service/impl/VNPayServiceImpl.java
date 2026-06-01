@@ -16,8 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
@@ -62,12 +60,6 @@ public class VNPayServiceImpl implements PaymentService {
     @Value("${vnpay.return-url}")
     private String returnUrl;
 
-    @Value("${vnpay.frontend-return-url}")
-    private String frontendReturnUrl;
-
-    @Value("${vnpay.mock-enabled:true}")
-    private boolean mockEnabled;
-
     @Override
     @Transactional
     public PaymentResponse createPayment(UUID orderId, BigDecimal amount, String orderInfo, String ipAddress) {
@@ -84,18 +76,7 @@ public class VNPayServiceImpl implements PaymentService {
         PaymentResponse response = toResponse(txn);
         response.setTransactionRef(txnRef);
         response.setAmount(amount);
-
-        if (mockEnabled) {
-            log.info("VNPay mock: auto-confirm payment for orderId={}, txnRef={}", orderId, txnRef);
-            finalizeSuccessfulPayment(txn, Map.of("mock", "true", "vnp_ResponseCode", "00", "vnp_TxnRef", txnRef));
-            response.setStatus(PaymentTransactionStatuses.SUCCESS);
-            response.setMockPayment(true);
-            response.setPaymentUrl(buildMockFrontendReturnUrl(orderId, txnRef));
-            return response;
-        }
-
         response.setStatus(PaymentTransactionStatuses.PENDING);
-        response.setMockPayment(false);
         response.setPaymentUrl(buildVNPayUrl(txnRef, amount, orderInfo, ipAddress));
         return response;
     }
@@ -174,18 +155,6 @@ public class VNPayServiceImpl implements PaymentService {
             log.warn("Could not serialize payment raw_response", e);
             return null;
         }
-    }
-
-    private String buildMockFrontendReturnUrl(UUID orderId, String txnRef) {
-        return UriComponentsBuilder.fromUriString(frontendReturnUrl)
-                .queryParam("status", PaymentTransactionStatuses.SUCCESS)
-                .queryParam("code", "00")
-                .queryParam("orderId", orderId)
-                .queryParam("transactionRef", txnRef)
-                .queryParam("mock", "true")
-                .build()
-                .encode()
-                .toUriString();
     }
 
     @Override

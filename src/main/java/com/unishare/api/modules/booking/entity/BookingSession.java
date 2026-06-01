@@ -58,6 +58,18 @@ public class BookingSession {
     @Column(name = "cancel_reason", columnDefinition = "TEXT")
     private String cancelReason;
 
+    @Column(name = "mentee_completion_ack")
+    private Boolean menteeCompletionAck;
+
+    @Column(name = "mentor_completion_ack")
+    private Boolean mentorCompletionAck;
+
+    @Column(name = "mentee_ack_at")
+    private Instant menteeAckAt;
+
+    @Column(name = "mentor_ack_at")
+    private Instant mentorAckAt;
+
     @Version
     private Long version;
 

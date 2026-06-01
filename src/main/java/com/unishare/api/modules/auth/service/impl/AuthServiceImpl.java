@@ -58,7 +58,6 @@ public class AuthServiceImpl implements AuthService {
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final OtpTokenRepository otpTokenRepository;
-    private final CapabilityRepository capabilityRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final DomainEventPublisher eventPublisher;
@@ -330,8 +329,6 @@ public class AuthServiceImpl implements AuthService {
         List<String> roles = user.getUserRoles().stream()
                 .map(ur -> ur.getRole().getName())
                 .toList();
-        List<String> capabilities = capabilityRepository.findCapabilityNamesByUserId(userId);
-
         return MeResponse.builder()
                 .userId(user.getId())
                 .email(user.getEmail())
@@ -343,7 +340,6 @@ public class AuthServiceImpl implements AuthService {
                 .headline(profile.getHeadline())
                 .avatarUrl(null)
                 .roles(roles)
-                .capabilities(capabilities)
                 .createdAt(user.getCreatedAt())
                 .build();
     }
