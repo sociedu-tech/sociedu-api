@@ -14,6 +14,7 @@ import com.unishare.api.modules.mentor.exception.MentorErrorCode;
 import com.unishare.api.modules.mentor.repository.MentorProfileRepository;
 import com.unishare.api.modules.user.entity.UserProfile;
 import com.unishare.api.modules.user.repository.UserProfileRepository;
+import com.unishare.api.config.cache.ApplicationCacheEviction;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class ReviewServiceImplTest {
 
     @Mock
     private DomainEventPublisher eventPublisher;
+
+    @Mock
+    private ApplicationCacheEviction cacheEviction;
 
     @InjectMocks
     private ReviewServiceImpl reviewService;

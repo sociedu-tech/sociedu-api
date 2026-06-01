@@ -79,11 +79,15 @@ class PublicUserControllerTest {
         certificate.setId(UUID.randomUUID());
         certificate.setName("AWS Certified");
 
-        when(userService.getProfile(userId)).thenReturn(profile);
-        when(userService.getEducations(userId)).thenReturn(List.of(education));
-        when(userService.getLanguages(userId)).thenReturn(List.of(language));
-        when(userService.getExperiences(userId)).thenReturn(List.of(experience));
-        when(userService.getCertificates(userId)).thenReturn(List.of(certificate));
+        UserFullProfileResponse fullProfile = UserFullProfileResponse.builder()
+                .profile(profile)
+                .educations(List.of(education))
+                .languages(List.of(language))
+                .experiences(List.of(experience))
+                .certificates(List.of(certificate))
+                .build();
+
+        when(userService.getFullProfile(userId)).thenReturn(fullProfile);
 
         mockMvc.perform(get("/api/v1/users/{id}/profile", userId))
                 .andDo(print())
@@ -108,11 +112,15 @@ class PublicUserControllerTest {
         UserProfileResponse emptyProfile = new UserProfileResponse();
         emptyProfile.setUserId(userId);
 
-        when(userService.getProfile(userId)).thenReturn(emptyProfile);
-        when(userService.getEducations(userId)).thenReturn(Collections.emptyList());
-        when(userService.getLanguages(userId)).thenReturn(Collections.emptyList());
-        when(userService.getExperiences(userId)).thenReturn(Collections.emptyList());
-        when(userService.getCertificates(userId)).thenReturn(Collections.emptyList());
+        UserFullProfileResponse fullProfile = UserFullProfileResponse.builder()
+                .profile(emptyProfile)
+                .educations(Collections.emptyList())
+                .languages(Collections.emptyList())
+                .experiences(Collections.emptyList())
+                .certificates(Collections.emptyList())
+                .build();
+
+        when(userService.getFullProfile(userId)).thenReturn(fullProfile);
 
         mockMvc.perform(get("/api/v1/users/{id}/profile", userId))
                 .andExpect(status().isOk())

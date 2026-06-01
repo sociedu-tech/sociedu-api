@@ -13,6 +13,8 @@ public class ChatMessageResponse {
     private UUID id;
     private UUID conversationId;
     private UUID senderId;
+    /** Tên hiển thị người gửi (dùng cho admin xem hội thoại giữa 2 user). */
+    private String senderDisplayName;
     private String content;
     private String type;
     private Boolean edited;

@@ -11,6 +11,7 @@ public interface UserService {
 
     // Profile
     UserProfileResponse getProfile(UUID userId);
+    UserFullProfileResponse getFullProfile(UUID userId);
     UserProfileResponse updateProfile(UUID userId, UserProfileRequest request);
 
     /** Gọi từ auth sau khi tạo user — chỉ tạo khi chưa có profile. */

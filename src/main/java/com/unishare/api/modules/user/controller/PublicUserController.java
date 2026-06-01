@@ -25,18 +25,8 @@ public class PublicUserController {
     @SecurityRequirements(value = {})
     @GetMapping("/{id}/profile")
     public ResponseEntity<ApiResponse<UserFullProfileResponse>> getFullProfile(@PathVariable("id") UUID id) {
-        UserProfileResponse profile = userService.getProfile(id);
-        
-        UserFullProfileResponse fullProfile = UserFullProfileResponse.builder()
-                .profile(profile)
-                .educations(userService.getEducations(id))
-                .languages(userService.getLanguages(id))
-                .experiences(userService.getExperiences(id))
-                .certificates(userService.getCertificates(id))
-                .build();
-
         return ResponseEntity.ok(ApiResponse.<UserFullProfileResponse>build()
-                .withData(fullProfile)
+                .withData(userService.getFullProfile(id))
                 .withMessage("Success"));
     }
 }

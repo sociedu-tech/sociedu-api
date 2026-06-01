@@ -46,6 +46,13 @@ public class AdminPayoutController {
                 .withData(page));
     }
 
+    @Operation(summary = "Chi tiết yêu cầu rút tiền (Admin)")
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<PayoutRequestResponse>> getPayoutDetail(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(ApiResponse.<PayoutRequestResponse>build()
+                .withData(payoutService.getAdminPayoutRequest(id)));
+    }
+
     @Operation(summary = "Duyệt yêu cầu rút tiền")
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<PayoutRequestResponse>> approvePayout(

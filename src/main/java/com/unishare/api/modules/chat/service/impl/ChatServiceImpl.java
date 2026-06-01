@@ -159,8 +159,10 @@ public class ChatServiceImpl implements ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessageResponse> listMessages(UUID userId, UUID conversationId) {
         assertParticipant(conversationId, userId);
-        return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId).stream()
-                .map(this::toMessageResponse)
+        List<ChatMessage> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+        Map<UUID, UserProfileNames> namesByUserId = loadSenderNames(messages);
+        return messages.stream()
+                .map(m -> toMessageResponse(m, namesByUserId))
                 .collect(Collectors.toList());
     }
 
@@ -168,8 +170,9 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     public Page<ChatMessageResponse> listMessages(UUID userId, UUID conversationId, Pageable pageable) {
         assertParticipant(conversationId, userId);
-        Page<ChatMessageResponse> page = messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable)
-                .map(this::toMessageResponse);
+        Page<ChatMessage> messagePage = messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable);
+        Map<UUID, UserProfileNames> namesByUserId = loadSenderNames(messagePage.getContent());
+        Page<ChatMessageResponse> page = messagePage.map(m -> toMessageResponse(m, namesByUserId));
         if (pageable.getPageNumber() == 0) {
             markConversationRead(userId, conversationId);
         }
@@ -237,7 +240,7 @@ public class ChatServiceImpl implements ChatService {
                 attachmentRepository.save(a);
             }
         }
-        ChatMessageResponse response = toMessageResponse(m);
+        ChatMessageResponse response = toMessageResponse(m, loadSenderNames(List.of(m)));
         ChatEventEnvelope<ChatMessageResponse> envelope = ChatEventEnvelope.<ChatMessageResponse>builder()
                 .eventType("NEW_MESSAGE")
                 .conversationId(conversationId.toString())
@@ -529,7 +532,21 @@ public class ChatServiceImpl implements ChatService {
         return aAt.isAfter(bAt) ? a : b;
     }
 
-    private ChatMessageResponse toMessageResponse(ChatMessage m) {
+    private Map<UUID, UserProfileNames> loadSenderNames(Collection<ChatMessage> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return Map.of();
+        }
+        Set<UUID> senderIds = messages.stream()
+                .map(ChatMessage::getSenderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (senderIds.isEmpty()) {
+            return Map.of();
+        }
+        return userService.getProfileNamesByUserIds(senderIds);
+    }
+
+    private ChatMessageResponse toMessageResponse(ChatMessage m, Map<UUID, UserProfileNames> namesByUserId) {
         List<UUID> fileIds = attachmentRepository.findByMessageId(m.getId()).stream()
                 .map(MessageAttachment::getFileId)
                 .collect(Collectors.toList());
@@ -537,6 +554,7 @@ public class ChatServiceImpl implements ChatService {
                 .id(m.getId())
                 .conversationId(m.getConversationId())
                 .senderId(m.getSenderId())
+                .senderDisplayName(formatDisplayName(m.getSenderId(), namesByUserId.get(m.getSenderId())))
                 .content(m.getContent())
                 .type(m.getType())
                 .edited(m.getEdited())

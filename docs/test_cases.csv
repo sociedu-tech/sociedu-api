@@ -1,0 +1,369 @@
+Module,Sub-Module,Test Case ID,Test Case Name,Mô tả,Preconditions,Test Steps,Expected Result,Priority,Loại Test,Role
+Auth,Đăng ký,AUTH-REG-001,Đăng ký thành công với email hợp lệ,Kiểm tra đăng ký tài khoản mới với thông tin hợp lệ,Email chưa tồn tại trong hệ thống,"1. POST /api/v1/auth/register với email, password hợp lệ
+2. Kiểm tra response",HTTP 201 — trả về AuthResponse với accessToken. User status = pending. Email xác minh được gửi.,High,Positive,Public
+Auth,Đăng ký,AUTH-REG-002,Đăng ký thất bại — email đã tồn tại,Kiểm tra trùng lặp email khi đăng ký,Email đã tồn tại trong DB,"1. POST /api/v1/auth/register với email đã có
+2. Kiểm tra response",HTTP 409 — trả về lỗi email trùng lặp,High,Negative,Public
+Auth,Đăng ký,AUTH-REG-003,Đăng ký thất bại — email format sai,Kiểm tra validation email,Không,"1. POST /api/v1/auth/register với email='abc'
+2. Kiểm tra response",HTTP 400 — validation error,Medium,Negative,Public
+Auth,Đăng ký,AUTH-REG-004,Đăng ký thất bại — password quá ngắn,Kiểm tra validation password,Không,"1. POST /api/v1/auth/register với password < 8 ký tự
+2. Kiểm tra response",HTTP 400 — validation error,Medium,Negative,Public
+Auth,Xác minh email,AUTH-VER-001,Xác minh email thành công,Kiểm tra xác minh email bằng token,User đã đăng ký và có token xác minh,"1. POST /api/v1/auth/verify-email với token hợp lệ
+2. Kiểm tra user status",HTTP 200 — User status chuyển sang active. Trả về AuthResponse.,High,Positive,Public
+Auth,Xác minh email,AUTH-VER-002,Xác minh email thất bại — token hết hạn,Kiểm tra token xác minh hết hạn,Token xác minh đã quá hạn,"1. POST /api/v1/auth/verify-email với token hết hạn
+2. Kiểm tra response",HTTP 400/410 — Token expired,Medium,Negative,Public
+Auth,Xác minh email,AUTH-VER-003,Gửi lại email xác minh,Kiểm tra gửi lại link xác minh,User có email chưa xác minh,"1. POST /api/v1/auth/resend-verification với email hợp lệ
+2. Kiểm tra response",HTTP 200 — Email xác minh mới được gửi,Medium,Positive,Public
+Auth,Đăng nhập,AUTH-LOG-001,Đăng nhập thành công với email/password,Kiểm tra đăng nhập bằng email + password,User đã đăng ký và status = active,"1. POST /api/v1/auth/login với email + password đúng
+2. Kiểm tra response",HTTP 200 — Trả về accessToken + refreshToken,High,Positive,Public
+Auth,Đăng nhập,AUTH-LOG-002,Đăng nhập thất bại — sai password,Kiểm tra đăng nhập với password sai,User tồn tại với status active,"1. POST /api/v1/auth/login với password sai
+2. Kiểm tra response",HTTP 401 — Unauthorized,High,Negative,Public
+Auth,Đăng nhập,AUTH-LOG-003,Đăng nhập thất bại — user pending,Kiểm tra đăng nhập khi user chưa xác minh email,User status = pending,"1. POST /api/v1/auth/login với email chưa xác minh
+2. Kiểm tra response",HTTP 403 — User chưa kích hoạt,High,Negative,Public
+Auth,Đăng nhập,AUTH-LOG-004,Đăng nhập thất bại — user suspended,Kiểm tra đăng nhập khi user bị khóa,User status = suspended,"1. POST /api/v1/auth/login với email bị suspended
+2. Kiểm tra response",HTTP 403 — Tài khoản bị khóa,High,Negative,Public
+Auth,Đăng nhập OTP,AUTH-OTP-001,Gửi OTP đăng nhập qua email thành công,Kiểm tra gửi OTP đăng nhập,User đã đăng ký và active,"1. POST /api/v1/auth/otp/send với email hợp lệ
+2. Kiểm tra response",HTTP 200 — OTP được gửi tới email,Medium,Positive,Public
+Auth,Đăng nhập OTP,AUTH-OTP-002,Đăng nhập bằng OTP thành công,Kiểm tra đăng nhập bằng email + OTP,User đã nhận OTP,"1. POST /api/v1/auth/otp/login với email + OTP đúng
+2. Kiểm tra response",HTTP 200 — Trả về accessToken + refreshToken,Medium,Positive,Public
+Auth,Đăng nhập OTP,AUTH-OTP-003,Đăng nhập bằng OTP thất bại — OTP sai,Kiểm tra OTP không đúng,User đã nhận OTP,"1. POST /api/v1/auth/otp/login với OTP sai
+2. Kiểm tra response",HTTP 400/401 — OTP không hợp lệ,Medium,Negative,Public
+Auth,Refresh Token,AUTH-REF-001,Làm mới token thành công,Kiểm tra refresh token rotation,User đã đăng nhập có refresh token hợp lệ,"1. POST /api/v1/auth/refresh với refreshToken hợp lệ
+2. Kiểm tra response",HTTP 200 — Trả về accessToken mới + refreshToken mới. Refresh token cũ bị vô hiệu.,High,Positive,Public
+Auth,Refresh Token,AUTH-REF-002,Làm mới token thất bại — token hết hạn,Kiểm tra refresh token hết hạn,Refresh token đã quá hạn,"1. POST /api/v1/auth/refresh với refreshToken hết hạn
+2. Kiểm tra response",HTTP 401 — Token expired,High,Negative,Public
+Auth,Refresh Token,AUTH-REF-003,Làm mới token thất bại — token đã bị revoke,Kiểm tra refresh token đã sử dụng (replay attack),Refresh token đã bị revoke,"1. POST /api/v1/auth/refresh với refreshToken đã revoke
+2. Kiểm tra response",HTTP 401 — Token revoked,High,Negative,Public
+Auth,Quên mật khẩu,AUTH-FGP-001,Quên mật khẩu — gửi email thành công,Kiểm tra gửi link đặt lại mật khẩu,User tồn tại trong hệ thống,"1. POST /api/v1/auth/forgot-password với email hợp lệ
+2. Kiểm tra response",HTTP 200 — Email reset password được gửi,High,Positive,Public
+Auth,Quên mật khẩu,AUTH-FGP-002,Đặt lại mật khẩu thành công,Kiểm tra reset password bằng token,User đã nhận email reset,"1. POST /api/v1/auth/reset-password với token + password mới
+2. Kiểm tra response",HTTP 200 — Password được cập nhật. Có thể đăng nhập bằng password mới.,High,Positive,Public
+Auth,Đổi mật khẩu,AUTH-CHP-001,Đổi mật khẩu thành công,Kiểm tra đổi mật khẩu khi đã đăng nhập,User đã đăng nhập,"1. POST /api/v1/auth/change-password với oldPassword + newPassword
+2. Kiểm tra response",HTTP 200 — Password được cập nhật. Các phiên khác bị thu hồi.,Medium,Positive,Authenticated
+Auth,Phiên đăng nhập,AUTH-SES-001,Xem danh sách phiên đang hoạt động,Kiểm tra liệt kê sessions,User đã đăng nhập,"1. GET /api/v1/auth/sessions
+2. Kiểm tra response",HTTP 200 — Trả về danh sách sessions với thông tin IP/User-Agent,Medium,Positive,Authenticated
+Auth,Phiên đăng nhập,AUTH-SES-002,Thu hồi 1 phiên cụ thể,Kiểm tra revoke session,User có nhiều phiên,"1. DELETE /api/v1/auth/sessions/{id}
+2. Kiểm tra response",HTTP 200 — Phiên bị thu hồi. Refresh token tương ứng không dùng được.,Medium,Positive,Authenticated
+Auth,Phiên đăng nhập,AUTH-SES-003,Đăng xuất khỏi mọi thiết bị,Kiểm tra revoke tất cả sessions,User có nhiều phiên,"1. POST /api/v1/auth/sessions/revoke-all
+2. Kiểm tra response",HTTP 200 — Tất cả refresh tokens bị revoke.,Medium,Positive,Authenticated
+Auth,Đăng xuất,AUTH-OUT-001,Đăng xuất thành công,Kiểm tra logout,User đã đăng nhập,"1. POST /api/v1/auth/logout với refreshToken
+2. Kiểm tra response",HTTP 200 — Refresh token bị revoke,High,Positive,Authenticated
+Auth,Xác thực SĐT,AUTH-PHN-001,Gửi OTP xác thực số điện thoại,Kiểm tra gửi OTP verify phone,User đã đăng nhập,"1. POST /api/v1/auth/phone/send-otp với số điện thoại
+2. Kiểm tra response",HTTP 200 — OTP gửi tới email,Medium,Positive,Authenticated
+Auth,Xác thực SĐT,AUTH-PHN-002,Xác thực OTP gắn SĐT thành công,Kiểm tra verify phone bằng OTP,User đã nhận OTP,"1. POST /api/v1/auth/phone/verify-otp với OTP đúng
+2. Kiểm tra response",HTTP 200 — SĐT được gắn vào tài khoản,Medium,Positive,Authenticated
+Auth,Thông tin phiên,AUTH-ME-001,Lấy thông tin phiên hiện tại,Kiểm tra GET /me,User đã đăng nhập,"1. GET /api/v1/auth/me
+2. Kiểm tra response",HTTP 200 — Trả về user info + roles,High,Positive,Authenticated
+User,Profile,USR-PRF-001,Xem profile của tôi,Kiểm tra lấy thông tin profile,User đã đăng nhập,"1. GET /api/v1/users/me/profile
+2. Kiểm tra response",HTTP 200 — Trả về UserProfileResponse,High,Positive,Authenticated
+User,Profile,USR-PRF-002,Cập nhật profile thành công,Kiểm tra cập nhật thông tin cá nhân,User đã đăng nhập,"1. PUT /api/v1/users/me/profile với firstName, lastName, bio, headline
+2. Kiểm tra response",HTTP 200 — Profile được cập nhật,High,Positive,Authenticated
+User,Profile,USR-PRF-003,Xem profile công khai của user khác,Kiểm tra xem profile user khác,User đã đăng nhập,"1. GET /api/v1/users/{userId}/profile (public)
+2. Kiểm tra response",HTTP 200 — Trả về thông tin công khai,Medium,Positive,Public
+User,Education,USR-EDU-001,Thêm học vấn thành công,Kiểm tra thêm mục education,User đã đăng nhập,"1. POST /api/v1/users/me/educations
+2. Kiểm tra response",HTTP 200 — Education được thêm,Medium,Positive,Authenticated
+User,Education,USR-EDU-002,Cập nhật học vấn thành công,Kiểm tra cập nhật education,User có education entry,"1. PUT /api/v1/users/me/educations/{id}
+2. Kiểm tra response",HTTP 200 — Education được cập nhật,Medium,Positive,Authenticated
+User,Education,USR-EDU-003,Xóa học vấn thành công,Kiểm tra xóa education,User có education entry,"1. DELETE /api/v1/users/me/educations/{id}
+2. Kiểm tra response",HTTP 200 — Education bị xóa,Medium,Positive,Authenticated
+User,Education,USR-EDU-004,Thêm học vấn thất bại — start_date > end_date,Kiểm tra validation ngày tháng,User đã đăng nhập,"1. POST /api/v1/users/me/educations với start_date > end_date
+2. Kiểm tra response",HTTP 400 — Validation error,Medium,Negative,Authenticated
+User,Experience,USR-EXP-001,CRUD kinh nghiệm — thêm thành công,Kiểm tra thêm experience,User đã đăng nhập,"1. POST /api/v1/users/me/experiences
+2. Kiểm tra response",HTTP 200 — Experience được thêm,Medium,Positive,Authenticated
+User,Experience,USR-EXP-002,CRUD kinh nghiệm — cập nhật thành công,Kiểm tra cập nhật experience,User có experience,"1. PUT /api/v1/users/me/experiences/{id}
+2. Kiểm tra response",HTTP 200 — Experience được cập nhật,Medium,Positive,Authenticated
+User,Experience,USR-EXP-003,CRUD kinh nghiệm — xóa thành công,Kiểm tra xóa experience,User có experience,"1. DELETE /api/v1/users/me/experiences/{id}
+2. Kiểm tra response",HTTP 200 — Experience bị xóa,Medium,Positive,Authenticated
+User,Experience,USR-EXP-004,Kinh nghiệm is_current = true thì end_date phải null,Kiểm tra business rule is_current,User đã đăng nhập,"1. POST /api/v1/users/me/experiences với is_current=true + end_date != null
+2. Kiểm tra response",HTTP 400 — Validation error,Medium,Negative,Authenticated
+User,Language,USR-LNG-001,CRUD ngoại ngữ — thêm thành công,Kiểm tra thêm language,User đã đăng nhập,"1. POST /api/v1/users/me/languages
+2. Kiểm tra response",HTTP 200 — Language được thêm,Low,Positive,Authenticated
+User,Language,USR-LNG-002,CRUD ngoại ngữ — cập nhật/xóa,Kiểm tra update + delete language,User có language entry,"1. PUT /api/v1/users/me/languages/{id}
+2. DELETE /api/v1/users/me/languages/{id}",HTTP 200 — Language được cập nhật/xóa,Low,Positive,Authenticated
+User,Certificate,USR-CER-001,CRUD chứng chỉ — thêm thành công,Kiểm tra thêm certificate,User đã đăng nhập,"1. POST /api/v1/users/me/certificates
+2. Kiểm tra response",HTTP 200 — Certificate được thêm,Medium,Positive,Authenticated
+User,Certificate,USR-CER-002,CRUD chứng chỉ — cập nhật/xóa,Kiểm tra update + delete certificate,User có certificate entry,"1. PUT /api/v1/users/me/certificates/{id}
+2. DELETE /api/v1/users/me/certificates/{id}",HTTP 200 — Certificate được cập nhật/xóa,Medium,Positive,Authenticated
+Mentor Application,Nộp đơn,MTA-SUB-001,Nộp đơn ứng tuyển mentor thành công,Kiểm tra submit mentor application,User đã đăng nhập chưa nộp đơn,"1. POST /api/v1/mentor-requests với payload hợp lệ
+2. Kiểm tra response",HTTP 200 — Application được tạo với status pending,High,Positive,Authenticated
+Mentor Application,Nộp đơn,MTA-SUB-002,Nộp đơn thất bại — đã có đơn pending,Kiểm tra duplicate application,User đã có đơn pending,"1. POST /api/v1/mentor-requests
+2. Kiểm tra response",HTTP 409 — Đã có đơn chờ duyệt,Medium,Negative,Authenticated
+Mentor Application,Xem đơn,MTA-GET-001,Xem đơn ứng tuyển của tôi,Kiểm tra lấy đơn hiện tại,User đã nộp đơn,"1. GET /api/v1/mentor-requests/me
+2. Kiểm tra response",HTTP 200 — Trả về MentorApplicationResponse,Medium,Positive,Authenticated
+Mentor Application,Nộp lại,MTA-RES-001,Nộp lại đơn sau khi bị từ chối,Kiểm tra resubmit application,Đơn trước bị rejected,"1. POST /api/v1/mentor-requests/me/resubmit
+2. Kiểm tra response",HTTP 200 — Application mới được tạo,Medium,Positive,Authenticated
+Mentor,Hồ sơ,MNT-PRF-001,Xem danh sách mentor (public),Kiểm tra tìm kiếm mentor,Có mentor đã verified trong hệ thống,"1. GET /api/v1/mentors?q=keyword
+2. Kiểm tra response",HTTP 200 — Trả về danh sách mentor đã verified,High,Positive,Public
+Mentor,Hồ sơ,MNT-PRF-002,Xem chi tiết mentor (public),Kiểm tra xem profile mentor,Mentor tồn tại,"1. GET /api/v1/mentors/{id}
+2. Kiểm tra response",HTTP 200 — Trả về MentorResponse,High,Positive,Public
+Mentor,Hồ sơ,MNT-PRF-003,Cập nhật hồ sơ mentor,Kiểm tra mentor cập nhật profile,User có role MENTOR,"1. PUT /api/v1/mentors/me với thông tin mới
+2. Kiểm tra response",HTTP 200 — Profile được cập nhật,High,Positive,MENTOR
+Mentor,Hồ sơ,MNT-PRF-004,Xem hồ sơ mentor của tôi,Kiểm tra lấy profile mentor hiện tại,User có role MENTOR,"1. GET /api/v1/mentors/me/profile
+2. Kiểm tra response",HTTP 200 — Trả về MentorResponse,Medium,Positive,MENTOR
+Mentor,Hồ sơ,MNT-PRF-005,Gửi yêu cầu duyệt hồ sơ mentor,Kiểm tra submit profile verification,User có role MENTOR profile đầy đủ,"1. POST /api/v1/mentors/me/profile/submit
+2. Kiểm tra response",HTTP 200 — Verification status chuyển sang pending,Medium,Positive,MENTOR
+Mentor,Hồ sơ,MNT-PRF-006,Tìm mentor theo khoảng giá,Kiểm tra filter minBasePrice/maxBasePrice,Có mentor với nhiều mức giá,"1. GET /api/v1/mentors?minBasePrice=100000&maxBasePrice=500000
+2. Kiểm tra response",HTTP 200 — Chỉ trả về mentor trong khoảng giá,Medium,Positive,Public
+Service Package,Tạo gói,SVC-CRT-001,Tạo gói dịch vụ thành công,Kiểm tra mentor tạo gói dịch vụ,User có role MENTOR,"1. POST /api/v1/service-packages với tên + mô tả
+2. Kiểm tra response",HTTP 200 — Gói được tạo. ServicePackageResponse trả về.,High,Positive,MENTOR
+Service Package,Tạo gói,SVC-CRT-002,Tạo gói thất bại — user không phải MENTOR,Kiểm tra phân quyền,User có role USER,"1. POST /api/v1/service-packages
+2. Kiểm tra response",HTTP 403 — Forbidden,High,Negative,USER
+Service Package,Cập nhật gói,SVC-UPD-001,Cập nhật gói dịch vụ thành công,Kiểm tra mentor update package,Mentor sở hữu gói,"1. PUT /api/v1/service-packages/{id}
+2. Kiểm tra response",HTTP 200 — Gói được cập nhật,Medium,Positive,MENTOR
+Service Package,Cập nhật gói,SVC-UPD-002,Cập nhật gói thất bại — không phải chủ sở hữu,Kiểm tra ownership,Mentor khác,"1. PUT /api/v1/service-packages/{id} bằng account mentor khác
+2. Kiểm tra response",HTTP 403 — Không có quyền,High,Negative,MENTOR
+Service Package,Bật/tắt gói,SVC-TGL-001,Bật/tắt gói dịch vụ,Kiểm tra toggle active/inactive,Mentor sở hữu gói,"1. PATCH /api/v1/service-packages/{id}/toggle
+2. Kiểm tra is_active đổi trạng thái",HTTP 200 — is_active được đổi,Medium,Positive,MENTOR
+Service Package,Xóa gói,SVC-DEL-001,Xóa (archive) gói dịch vụ,Kiểm tra soft delete package,Mentor sở hữu gói,"1. DELETE /api/v1/service-packages/{id}
+2. Kiểm tra response",HTTP 200 — Gói bị archive,Medium,Positive,MENTOR
+Service Package,Xem gói,SVC-LST-001,Xem danh sách gói đang mở (public),Kiểm tra listing public packages,Có gói is_active=true,"1. GET /api/v1/service-packages
+2. Kiểm tra response",HTTP 200 — Chỉ trả về gói active,High,Positive,Public
+Service Package,Xem gói,SVC-LST-002,Xem gói lọc theo mentorId,Kiểm tra filter by mentorId,Mentor có gói,"1. GET /api/v1/service-packages?mentorId={id}
+2. Kiểm tra response",HTTP 200 — Chỉ trả về gói của mentor đó,Medium,Positive,Public
+Service Package,Xem gói,SVC-DTL-001,Xem chi tiết gói (public),Kiểm tra get package by id,Gói tồn tại và active,"1. GET /api/v1/service-packages/{id}
+2. Kiểm tra response",HTTP 200 — Trả về ServicePackageResponse,Medium,Positive,Public
+Service Package,Version,SVC-VER-001,Tạo version mới cho gói,Kiểm tra tạo version với giá mới,Mentor sở hữu gói,"1. POST /api/v1/service-packages/{id}/versions với price + duration
+2. Kiểm tra response",HTTP 200 — Version mới được tạo với is_default=true,High,Positive,MENTOR
+Service Package,Version,SVC-VER-002,Cập nhật version,Kiểm tra update version,Mentor sở hữu gói,"1. PUT /api/v1/service-packages/{id}/versions/{versionId}
+2. Kiểm tra response",HTTP 200 — Version được cập nhật,Medium,Positive,MENTOR
+Service Package,Version,SVC-VER-003,Xóa version,Kiểm tra delete version,Mentor sở hữu gói có >1 version,"1. DELETE /api/v1/service-packages/{id}/versions/{versionId}
+2. Kiểm tra response",HTTP 200 — Version bị xóa,Medium,Positive,MENTOR
+Service Package,Version,SVC-VER-004,Đặt version làm mặc định,Kiểm tra set default version,Mentor sở hữu gói,"1. PATCH /api/v1/service-packages/{id}/versions/{versionId}/default
+2. Kiểm tra response",HTTP 200 — Version mới thành is_default=true. Version cũ is_default=false.,Medium,Positive,MENTOR
+Service Package,Version,SVC-VER-005,Tạo version thất bại — price < 0,Kiểm tra validation giá,Mentor sở hữu gói,"1. POST /api/v1/service-packages/{id}/versions với price = -1
+2. Kiểm tra response",HTTP 400 — Validation error,Medium,Negative,MENTOR
+Service Package,Curriculum,SVC-CUR-001,Thêm curriculum vào version,Kiểm tra thêm curriculum item,Mentor sở hữu gói và version,"1. POST /api/v1/service-packages/{id}/versions/{verId}/curriculums
+2. Kiểm tra response",HTTP 200 — Curriculum item được thêm,High,Positive,MENTOR
+Service Package,Curriculum,SVC-CUR-002,Cập nhật curriculum,Kiểm tra update curriculum,Curriculum tồn tại,"1. PUT /api/v1/service-packages/{id}/versions/{verId}/curriculums/{curId}
+2. Kiểm tra response",HTTP 200 — Curriculum được cập nhật,Medium,Positive,MENTOR
+Service Package,Curriculum,SVC-CUR-003,Xóa curriculum,Kiểm tra delete curriculum,Curriculum tồn tại,"1. DELETE /api/v1/service-packages/{id}/versions/{verId}/curriculums/{curId}
+2. Kiểm tra response",HTTP 200 — Curriculum bị xóa,Medium,Positive,MENTOR
+Service Package,Curriculum,SVC-CUR-004,Xem danh sách curriculum (public),Kiểm tra list curriculum cho version,Package và version tồn tại,"1. GET /api/v1/service-packages/{id}/versions/{verId}/curriculums
+2. Kiểm tra response",HTTP 200 — Trả về danh sách curriculum theo order_index,Medium,Positive,Public
+Order,Checkout,ORD-CHK-001,Checkout tạo đơn thành công,Kiểm tra tạo đơn hàng + URL thanh toán VNPay,User đăng nhập + gói dịch vụ active,"1. POST /api/v1/orders/checkout với packageVersionId
+2. Kiểm tra response",HTTP 200 — Đơn hàng status = pending_payment. paymentUrl VNPay được trả về.,Critical,Positive,USER
+Order,Checkout,ORD-CHK-002,Checkout thất bại — gói is_active=false,Kiểm tra không cho mua gói đã tắt,Gói dịch vụ is_active=false,"1. POST /api/v1/orders/checkout với gói đã tắt
+2. Kiểm tra response",HTTP 400 — Không cho phép đặt mua gói không active,High,Negative,USER
+Order,Checkout,ORD-CHK-003,Checkout — giá server-side (không nhận giá từ client),Kiểm tra total_amount tính từ server,Gói dịch vụ có giá 500K,"1. POST /api/v1/orders/checkout (body không gửi giá)
+2. Kiểm tra total_amount trong order",total_amount = giá từ ServicePackageVersion.is_default. KHÔNG lấy từ request body.,Critical,Security,USER
+Order,Xem đơn,ORD-LST-001,Xem danh sách đơn của tôi (buyer),Kiểm tra listing đơn hàng,User có đơn hàng,"1. GET /api/v1/orders/me
+2. Kiểm tra response",HTTP 200 — Chỉ trả về đơn của chính mình,High,Positive,USER
+Order,Xem đơn,ORD-LST-002,Xem đơn hàng gói của mentor (incoming),Kiểm tra mentor xem đơn đến,Mentor có gói được đặt mua,"1. GET /api/v1/orders/me/incoming
+2. Kiểm tra response",HTTP 200 — Trả về đơn hàng của khách mua gói của mentor,Medium,Positive,MENTOR
+Order,Chi tiết,ORD-DTL-001,Xem chi tiết đơn hàng,Kiểm tra get order by id,User là buyer hoặc mentor,"1. GET /api/v1/orders/{id}
+2. Kiểm tra response",HTTP 200 — Trả về OrderResponse,Medium,Positive,USER/MENTOR
+Order,Chi tiết,ORD-DTL-002,Xem đơn hàng thất bại — không phải chủ sở hữu,Kiểm tra ownership,User không phải buyer/mentor,"1. GET /api/v1/orders/{id} bằng user khác
+2. Kiểm tra response",HTTP 403 — Không có quyền,High,Negative,USER
+Order,Thanh toán lại,ORD-PAY-001,Tạo lại URL thanh toán cho đơn pending,Kiểm tra repay,Đơn status = pending_payment,"1. POST /api/v1/orders/{id}/pay
+2. Kiểm tra response",HTTP 200 — paymentUrl mới được trả về,Medium,Positive,USER
+Order,State machine,ORD-STM-001,Kiểm tra state machine — paid → refunded,Kiểm tra chuyển trạng thái hợp lệ,Đơn status = paid,"1. Trigger refund cho đơn paid
+2. Kiểm tra status",Status chuyển sang refunded,High,Positive,System
+Order,State machine,ORD-STM-002,Kiểm tra state machine — paid → canceled (invalid),Kiểm tra chuyển trạng thái không hợp lệ,Đơn status = paid,"1. Thử cancel đơn đã paid
+2. Kiểm tra response",HTTP 400 — Không cho phép chuyển trạng thái,High,Negative,System
+Payment,VNPay IPN,PAY-IPN-001,VNPay IPN callback thành công,Kiểm tra xử lý IPN từ VNPay,Có payment transaction pending,"1. GET /api/v1/payments/vnpay/ipn với params hợp lệ + chữ ký đúng
+2. Kiểm tra response",RspCode=00. Payment status → success. Order status → paid. Booking được tạo.,Critical,Positive,System
+Payment,VNPay IPN,PAY-IPN-002,VNPay IPN thất bại — chữ ký sai,Kiểm tra verify HMAC signature,Params với signature sai,"1. GET /api/v1/payments/vnpay/ipn với chữ ký sai
+2. Kiểm tra response",RspCode=97 — Chữ ký không hợp lệ,Critical,Security,System
+Payment,VNPay IPN,PAY-IPN-003,VNPay IPN — idempotency,Kiểm tra xử lý trùng lặp IPN,Payment đã success,"1. Gọi IPN 2 lần với cùng transaction
+2. Kiểm tra response lần 2",RspCode=04 (đã xử lý) — không thay đổi trạng thái,High,Positive,System
+Payment,VNPay IPN,PAY-IPN-004,VNPay IPN — transaction not found,Kiểm tra IPN với transaction không tồn tại,Không có transaction tương ứng,"1. GET /api/v1/payments/vnpay/ipn với vnp_TxnRef không tồn tại
+2. Kiểm tra response",RspCode=01 — Transaction not found,Medium,Negative,System
+Payment,VNPay Return,PAY-RET-001,VNPay return redirect thành công,Kiểm tra redirect user sau thanh toán,User vừa thanh toán VNPay,"1. GET /api/v1/payments/vnpay/return với params thành công
+2. Kiểm tra redirect",HTTP 302 — Redirect tới frontend với status=success,High,Positive,Public
+Payment,Xem trạng thái,PAY-STS-001,Lấy trạng thái payment theo orderId,Kiểm tra get payment by order,Có payment cho order,"1. GET /api/v1/payments/order/{orderId}
+2. Kiểm tra response",HTTP 200 — Trả về PaymentResponse,Medium,Positive,USER/MENTOR
+Booking,Khởi tạo,BKG-INI-001,Booking tự động tạo sau order paid,Kiểm tra flow order paid → booking created,Order vừa được paid,"1. Xác nhận payment thành công
+2. Kiểm tra booking + sessions",Booking status=pending. N sessions tạo theo curriculum. Chat room booking được tạo.,Critical,Positive,System
+Booking,Xem booking,BKG-LST-001,Xem booking của tôi (buyer),Kiểm tra listing booking cho mentee,User có booking,"1. GET /api/v1/bookings/me/buyer
+2. Kiểm tra response",HTTP 200 — Trả về danh sách booking,High,Positive,USER
+Booking,Xem booking,BKG-LST-002,Xem booking của tôi (mentor),Kiểm tra listing booking cho mentor,Mentor có booking,"1. GET /api/v1/bookings/me/mentor
+2. Kiểm tra response",HTTP 200 — Trả về danh sách booking,High,Positive,MENTOR
+Booking,Chi tiết,BKG-DTL-001,Xem chi tiết booking,Kiểm tra get booking by id,User là buyer/mentor trong booking,"1. GET /api/v1/bookings/{id}
+2. Kiểm tra response",HTTP 200 — Trả về BookingResponse với sessions,High,Positive,USER/MENTOR
+Booking,Chi tiết,BKG-DTL-002,Xem booking thất bại — không có quyền,Kiểm tra authorization,User không thuộc booking,"1. GET /api/v1/bookings/{id} bằng user khác
+2. Kiểm tra response",HTTP 403 — Forbidden,High,Negative,USER
+Booking,Session sắp tới,BKG-NXT-001,Lấy buổi học sắp tới (buyer),Kiểm tra next upcoming session,User có session scheduled,"1. GET /api/v1/bookings/me/buyer/next-session
+2. Kiểm tra response",HTTP 200 — Trả về NextUpcomingSessionResponse,Medium,Positive,USER
+Booking,Session sắp tới,BKG-NXT-002,Lấy buổi dạy sắp tới (mentor),Kiểm tra next upcoming session cho mentor,Mentor có session scheduled,"1. GET /api/v1/bookings/me/mentor/next-session
+2. Kiểm tra response",HTTP 200 — Trả về NextUpcomingSessionResponse,Medium,Positive,MENTOR
+Booking,Cập nhật session,BKG-SES-001,Mentor lên lịch session (scheduled_at + meeting_url),Kiểm tra mentor cập nhật session,Mentor trong booking,"1. PATCH /api/v1/bookings/{bId}/sessions/{sId} với scheduled_at + meeting_url
+2. Kiểm tra response",HTTP 200 — Session status → scheduled. Booking status cập nhật.,High,Positive,MENTOR
+Booking,Tạo session,BKG-SES-002,Mentor tạo buổi học mới,Kiểm tra tạo thêm session,Mentor trong booking,"1. POST /api/v1/bookings/{bId}/sessions
+2. Kiểm tra response",HTTP 200 — Session mới được tạo,Medium,Positive,MENTOR
+Booking,Google Meet,BKG-GMT-001,Tạo Google Meet và gắn lịch buổi học,Kiểm tra tích hợp Google Meet,Mentor đã kết nối Google,"1. POST /api/v1/bookings/{bId}/sessions/{sId}/google-meet
+2. Kiểm tra response",HTTP 200 — Session có meeting_url từ Google Meet + scheduled,Medium,Positive,MENTOR
+Booking,Hoàn thành session,BKG-CMP-001,Mentor đánh dấu hoàn thành session,Kiểm tra complete session,Session đã scheduled + đã qua giờ,"1. POST /api/v1/bookings/{bId}/sessions/{sId}/complete
+2. Kiểm tra response",HTTP 200 — Session status → completed,High,Positive,MENTOR
+Booking,Hoàn thành session,BKG-CMP-002,Hoàn thành session thất bại — chưa đến giờ,Kiểm tra business rule scheduled_at,Session scheduled ở tương lai,"1. POST /api/v1/bookings/{bId}/sessions/{sId}/complete trước giờ
+2. Kiểm tra response",HTTP 400 — Chưa đến thời điểm hoàn thành,High,Negative,MENTOR
+Booking,Xác nhận hoàn thành,BKG-CFM-001,Xác nhận hoàn thành buổi học (mentee/mentor),Kiểm tra confirm completion,Session đã completed,"1. POST /api/v1/bookings/{bId}/sessions/{sId}/confirm-completion
+2. Kiểm tra response",HTTP 200 — Ghi nhận xác nhận,Medium,Positive,USER/MENTOR
+Booking,Evidence,BKG-EVD-001,Upload minh chứng buổi học,Kiểm tra thêm evidence,User trong booking,"1. POST /api/v1/bookings/{bId}/sessions/{sId}/evidences với fileId
+2. Kiểm tra response",HTTP 200 — Evidence được thêm,Medium,Positive,USER/MENTOR
+Booking,Hủy booking,BKG-CNC-001,Hủy booking thành công,Kiểm tra cancel booking,Booking chưa completed,"1. POST /api/v1/bookings/{bId}/cancel
+2. Kiểm tra response",HTTP 200 — Booking status → canceled,High,Positive,USER/MENTOR
+Booking,Tiến trình,BKG-PRG-001,Cập nhật tiến trình gói dịch vụ,Kiểm tra update progress,Mentor trong booking,"1. PATCH /api/v1/bookings/{bId}/progress với progressPercent
+2. Kiểm tra response",HTTP 200 — Progress được cập nhật,Medium,Positive,MENTOR
+Booking,Flow hoàn thành,BKG-FLW-001,Booking hoàn thành → kích hoạt giải ngân,Kiểm tra flow tất cả sessions completed → booking completed,Tất cả sessions đã completed,"1. Complete tất cả sessions
+2. Kiểm tra booking status
+3. Kiểm tra order/finance module",Booking status → completed. Module finance nhận event để giải ngân.,Critical,Positive,System
+Booking,Review,BKG-RVW-001,Gửi đánh giá booking thành công,Kiểm tra tạo review,Booking đã completed,"1. POST /api/v1/bookings/{bId}/reviews với rating + comment
+2. Kiểm tra response",HTTP 200 — Review được tạo,High,Positive,USER
+Booking,Review,BKG-RVW-002,Gửi đánh giá thất bại — booking chưa completed,Kiểm tra review chỉ cho completed booking,Booking status != completed,"1. POST /api/v1/bookings/{bId}/reviews cho booking chưa completed
+2. Kiểm tra response",HTTP 400 — Chỉ đánh giá được booking đã hoàn thành,Medium,Negative,USER
+Booking,Review,BKG-RVW-003,Xem đánh giá mentor (public),Kiểm tra listing reviews,Mentor có reviews,"1. GET /api/v1/mentors/{mentorId}/reviews
+2. Kiểm tra response",HTTP 200 — Trả về danh sách review,Medium,Positive,Public
+Booking,Review,BKG-RVW-004,Xem tóm tắt rating mentor (public),Kiểm tra rating summary,Mentor có reviews,"1. GET /api/v1/mentors/{mentorId}/rating-summary
+2. Kiểm tra response",HTTP 200 — Trả về RatingSummaryResponse (averageRating + count),Medium,Positive,Public
+Session Report,Tạo yêu cầu,RPT-CRT-001,Mentor tạo yêu cầu nộp báo cáo,Kiểm tra tạo report request,Mentor trong booking,"1. POST /api/v1/bookings/{bId}/report-requests
+2. Kiểm tra response",HTTP 200 — Report request được tạo,Medium,Positive,MENTOR
+Session Report,Nộp báo cáo,RPT-SUB-001,Mentee nộp báo cáo,Kiểm tra submit report,Report request tồn tại,"1. POST /api/v1/report-requests/{requestId}/submit
+2. Kiểm tra response",HTTP 200 — Báo cáo được nộp,Medium,Positive,USER
+Session Report,Duyệt báo cáo,RPT-RVW-001,Mentor duyệt báo cáo,Kiểm tra review report,Báo cáo đã được nộp,"1. POST /api/v1/report-requests/{requestId}/review
+2. Kiểm tra response",HTTP 200 — Báo cáo được duyệt/từ chối,Medium,Positive,MENTOR
+Session Report,Xem danh sách,RPT-LST-001,Mentee xem yêu cầu báo cáo của mình,Kiểm tra list report requests (mentee),User có report requests,"1. GET /api/v1/report-requests/me/mentee
+2. Kiểm tra response",HTTP 200 — Trả về danh sách report requests,Low,Positive,USER
+Session Report,Xem danh sách,RPT-LST-002,Mentor xem yêu cầu báo cáo của mình,Kiểm tra list report requests (mentor),Mentor có report requests,"1. GET /api/v1/report-requests/me/mentor
+2. Kiểm tra response",HTTP 200 — Trả về danh sách report requests,Low,Positive,MENTOR
+Chat,Conversation,CHT-CVS-001,Tạo hội thoại 1-1 (direct),Kiểm tra tạo conversation direct,User đăng nhập,"1. POST /api/v1/chat/conversations/direct với peerId
+2. Kiểm tra response",HTTP 200 — Conversation được tạo hoặc trả về existing,High,Positive,Authenticated
+Chat,Conversation,CHT-CVS-002,Danh sách conversation của tôi,Kiểm tra listing conversations,User có conversations,"1. GET /api/v1/chat/conversations
+2. Kiểm tra response",HTTP 200 — Trả về danh sách có phân trang,High,Positive,Authenticated
+Chat,Conversation,CHT-CVS-003,Xem chi tiết conversation,Kiểm tra get conversation by id,User là participant,"1. GET /api/v1/chat/conversations/{id}
+2. Kiểm tra response",HTTP 200 — Trả về ConversationResponse,Medium,Positive,Authenticated
+Chat,Conversation,CHT-CVS-004,Xem conversation thất bại — không phải participant,Kiểm tra authorization,User không thuộc conversation,"1. GET /api/v1/chat/conversations/{id} bằng user khác
+2. Kiểm tra response",HTTP 403 — Forbidden,High,Negative,Authenticated
+Chat,Tin nhắn,CHT-MSG-001,Gửi tin nhắn thành công,Kiểm tra gửi message,User là participant,"1. POST /api/v1/chat/conversations/{id}/messages
+2. Kiểm tra response",HTTP 200 — Message được tạo và gửi realtime,High,Positive,Authenticated
+Chat,Tin nhắn,CHT-MSG-002,Gửi tin nhắn thất bại — không phải participant,Kiểm tra authorization gửi tin,User không thuộc conversation,"1. POST /api/v1/chat/conversations/{id}/messages bằng user khác
+2. Kiểm tra response",HTTP 403 — Forbidden,High,Negative,Authenticated
+Chat,Tin nhắn,CHT-MSG-003,Xem lịch sử tin nhắn (có phân trang),Kiểm tra listing messages,User là participant,"1. GET /api/v1/chat/conversations/{id}/messages
+2. Kiểm tra response",HTTP 200 — Trả về danh sách messages có phân trang,Medium,Positive,Authenticated
+Chat,Đánh dấu đọc,CHT-RD-001,Đánh dấu đã đọc hội thoại,Kiểm tra mark read,User là participant,"1. PATCH /api/v1/chat/conversations/{id}/read
+2. Kiểm tra response",HTTP 200 — Conversation được đánh dấu đã đọc,Medium,Positive,Authenticated
+File,Upload,FIL-UPL-001,Upload file thành công,Kiểm tra upload file hợp lệ,User đăng nhập,"1. POST /api/v1/files/upload (multipart) với file hợp lệ
+2. Kiểm tra response",HTTP 200 — Trả về FileUploadResponse với id + url,High,Positive,Authenticated
+File,Upload,FIL-UPL-002,Upload thất bại — file quá lớn (>25MB),Kiểm tra file size validation,User đăng nhập,"1. POST /api/v1/files/upload với file > 25MB
+2. Kiểm tra response",HTTP 400 — File vượt quá kích thước cho phép,High,Negative,Authenticated
+File,Upload,FIL-UPL-003,Upload thất bại — MIME type không được phép,Kiểm tra MIME whitelist,User đăng nhập,"1. POST /api/v1/files/upload với file .exe
+2. Kiểm tra response",HTTP 400 — MIME type không hợp lệ,High,Negative,Authenticated
+File,Upload,FIL-UPL-004,Upload thất bại — file rỗng,Kiểm tra empty file,User đăng nhập,"1. POST /api/v1/files/upload với file rỗng
+2. Kiểm tra response",HTTP 400 — File không được rỗng,Medium,Negative,Authenticated
+File,Xem file,FIL-GET-001,Lấy metadata file,Kiểm tra get file by id,File tồn tại + user là uploader,"1. GET /api/v1/files/{id}
+2. Kiểm tra response",HTTP 200 — Trả về FileUploadResponse,Medium,Positive,Authenticated
+File,Xem file,FIL-GET-002,Truy cập file private bởi user khác,Kiểm tra visibility private,File private + user không phải uploader,"1. GET /api/v1/files/{id} bằng user khác
+2. Kiểm tra response",HTTP 403 — Không có quyền truy cập,High,Negative,Authenticated
+File,Xóa file,FIL-DEL-001,Xóa mềm file thành công,Kiểm tra soft delete,File tồn tại + user là uploader,"1. DELETE /api/v1/files/{id}
+2. Kiểm tra response",HTTP 200 — File bị soft delete (deleted_at != null),Medium,Positive,Authenticated
+File,Xóa file,FIL-DEL-002,Xóa file thất bại — không phải chủ sở hữu,Kiểm tra ownership khi xóa,File thuộc user khác,"1. DELETE /api/v1/files/{id} bằng user khác
+2. Kiểm tra response",HTTP 403 — Không có quyền,High,Negative,Authenticated
+Notification,Danh sách,NTF-LST-001,Lấy danh sách thông báo,Kiểm tra listing notifications,User có notifications,"1. GET /api/v1/notifications
+2. Kiểm tra response",HTTP 200 — Trả về danh sách notification có phân trang (sort createdAt DESC),Medium,Positive,Authenticated
+Notification,Unread count,NTF-CNT-001,Lấy số thông báo chưa đọc,Kiểm tra unread count,User có unread notifications,"1. GET /api/v1/notifications/unread-count
+2. Kiểm tra response",HTTP 200 — Trả về UnreadCountResponse,Medium,Positive,Authenticated
+Notification,Đánh dấu đọc,NTF-RD-001,Đánh dấu đọc tất cả thông báo,Kiểm tra mark all read,User có unread notifications,"1. POST /api/v1/notifications/read-all
+2. Kiểm tra unread count sau đó",HTTP 200 — Tất cả notification được đánh dấu đã đọc. unread-count = 0.,Medium,Positive,Authenticated
+Notification,Đánh dấu đọc,NTF-RD-002,Đánh dấu đọc một thông báo,Kiểm tra mark single read,Notification tồn tại,"1. PATCH /api/v1/notifications/{id}/read
+2. Kiểm tra response",HTTP 200 — Notification cụ thể được đánh dấu đã đọc,Low,Positive,Authenticated
+Trust,Báo cáo,TRS-RPT-001,Tạo báo cáo kiểm duyệt,Kiểm tra tạo moderation report,User đăng nhập,"1. POST /api/v1/trust/reports với thông tin vi phạm
+2. Kiểm tra response",HTTP 200 — Report được tạo với status pending,High,Positive,USER/MENTOR
+Trust,Báo cáo,TRS-RPT-002,Xem báo cáo của tôi,Kiểm tra listing my reports,User đã tạo reports,"1. GET /api/v1/trust/reports/me
+2. Kiểm tra response",HTTP 200 — Trả về danh sách reports của tôi,Medium,Positive,USER/MENTOR
+Trust,Báo cáo,TRS-RPT-003,Thêm bằng chứng cho báo cáo,Kiểm tra add evidence to report,Report tồn tại + user là người báo cáo,"1. POST /api/v1/trust/reports/{reportId}/evidences
+2. Kiểm tra response",HTTP 200 — Evidence được thêm vào report,Medium,Positive,USER/MENTOR
+Trust,Báo cáo,TRS-RPT-004,Admin giải quyết báo cáo,Kiểm tra resolve report,Admin đăng nhập + report tồn tại,"1. PUT /api/v1/trust/reports/{reportId}/resolve
+2. Kiểm tra response",HTTP 200 — Report được resolve (action + resolution note),High,Positive,ADMIN
+Trust,Tranh chấp,TRS-DSP-001,Tạo tranh chấp,Kiểm tra tạo dispute,User đăng nhập + có booking,"1. POST /api/v1/trust/disputes
+2. Kiểm tra response",HTTP 200 — Dispute được tạo,High,Positive,USER/MENTOR
+Trust,Tranh chấp,TRS-DSP-002,Xem tranh chấp của tôi,Kiểm tra listing my disputes,User đã tạo disputes,"1. GET /api/v1/trust/disputes/me
+2. Kiểm tra response",HTTP 200 — Trả về danh sách disputes,Medium,Positive,USER/MENTOR
+Trust,Tranh chấp,TRS-DSP-003,Admin giải quyết tranh chấp,Kiểm tra resolve dispute,Admin đăng nhập + dispute tồn tại,"1. PUT /api/v1/trust/disputes/{disputeId}/resolve
+2. Kiểm tra response",HTTP 200 — Dispute được resolve (có thể trigger refund),High,Positive,ADMIN
+Finance,Doanh thu,FIN-REV-001,Xem tổng hợp doanh thu và số dư,Kiểm tra revenue summary,Mentor đăng nhập,"1. GET /api/v1/mentors/me/revenue-summary
+2. Kiểm tra response",HTTP 200 — Trả về RevenueSummaryResponse,High,Positive,MENTOR
+Finance,Rút tiền,FIN-PAY-001,Tạo yêu cầu rút tiền thành công,Kiểm tra create payout request,Mentor có available balance,"1. POST /api/v1/mentors/me/payouts
+2. Kiểm tra response",HTTP 200 — PayoutRequest được tạo với status pending,High,Positive,MENTOR
+Finance,Rút tiền,FIN-PAY-002,Tạo yêu cầu rút tiền thất bại — số dư không đủ,Kiểm tra insufficient balance,Mentor available balance < amount,"1. POST /api/v1/mentors/me/payouts với amount > balance
+2. Kiểm tra response",HTTP 400 — Số dư không đủ,High,Negative,MENTOR
+Finance,Rút tiền,FIN-PAY-003,Xem lịch sử rút tiền,Kiểm tra listing payout requests,Mentor có payouts,"1. GET /api/v1/mentors/me/payouts
+2. Kiểm tra response",HTTP 200 — Trả về danh sách payout requests,Medium,Positive,MENTOR
+Finance,Rút tiền,FIN-PAY-004,Xem chi tiết yêu cầu rút tiền,Kiểm tra get payout by id,Payout tồn tại,"1. GET /api/v1/mentors/me/payouts/{id}
+2. Kiểm tra response",HTTP 200 — Trả về PayoutRequestResponse,Medium,Positive,MENTOR
+Admin,User Management,ADM-USR-001,Liệt kê danh sách user,Kiểm tra admin list users,Admin đăng nhập,"1. GET /api/v1/admin/users
+2. Kiểm tra response",HTTP 200 — Trả về danh sách users có phân trang,High,Positive,ADMIN
+Admin,User Management,ADM-USR-002,Lọc user theo role/status/keyword,Kiểm tra filter users,Admin đăng nhập,"1. GET /api/v1/admin/users?role=MENTOR&status=active&q=keyword
+2. Kiểm tra response",HTTP 200 — Trả về users phù hợp filter,Medium,Positive,ADMIN
+Admin,User Management,ADM-USR-003,Cập nhật role user,Kiểm tra thay đổi role,Admin đăng nhập + user tồn tại,"1. PATCH /api/v1/admin/users/{id}/role
+2. Kiểm tra response",HTTP 200 — Role user được cập nhật,High,Positive,ADMIN
+Admin,User Management,ADM-USR-004,Cập nhật status user (suspend/active),Kiểm tra thay đổi status,Admin đăng nhập + user tồn tại,"1. PATCH /api/v1/admin/users/{id}/status
+2. Kiểm tra response",HTTP 200 — Status user được cập nhật,High,Positive,ADMIN
+Admin,User Management,ADM-USR-005,Truy cập admin bằng user thường thất bại,Kiểm tra phân quyền admin,User role = USER,"1. GET /api/v1/admin/users bằng user thường
+2. Kiểm tra response",HTTP 403 — Forbidden,Critical,Security,USER
+Admin,Mentor Application,ADM-MTA-001,Admin duyệt đơn ứng tuyển mentor,Kiểm tra approve mentor application,Admin đăng nhập + application pending,"1. Approve application qua admin endpoint
+2. Kiểm tra response",HTTP 200 — Application approved. User được gán role MENTOR.,High,Positive,ADMIN
+Admin,Mentor Application,ADM-MTA-002,Admin từ chối đơn ứng tuyển,Kiểm tra reject mentor application,Admin đăng nhập + application pending,"1. Reject application qua admin endpoint
+2. Kiểm tra response",HTTP 200 — Application rejected.,Medium,Positive,ADMIN
+Admin,Moderation,ADM-MOD-001,Liệt kê báo cáo kiểm duyệt,Kiểm tra admin list moderation reports,Admin đăng nhập,"1. GET /api/v1/admin/moderation/reports
+2. Kiểm tra response",HTTP 200 — Trả về danh sách reports,Medium,Positive,ADMIN
+Admin,Moderation,ADM-MOD-002,Xem chi tiết báo cáo kiểm duyệt,Kiểm tra get report detail,Admin đăng nhập + report tồn tại,"1. GET /api/v1/admin/moderation/reports/{id}
+2. Kiểm tra response",HTTP 200 — Trả về AdminModerationReportResponse,Medium,Positive,ADMIN
+Admin,Moderation,ADM-MOD-003,Admin giải quyết báo cáo kiểm duyệt,Kiểm tra resolve moderation report,Admin đăng nhập + report tồn tại,"1. PUT /api/v1/admin/moderation/reports/{id}
+2. Kiểm tra response",HTTP 200 — Report được resolved,High,Positive,ADMIN
+Admin,Payout,ADM-PAY-001,Danh sách yêu cầu rút tiền (admin),Kiểm tra admin list payouts,Admin đăng nhập,"1. GET /api/v1/admin/payouts
+2. Kiểm tra response",HTTP 200 — Trả về danh sách payout requests,Medium,Positive,ADMIN
+Admin,Payout,ADM-PAY-002,Lọc payout theo status,Kiểm tra filter payouts,Admin đăng nhập,"1. GET /api/v1/admin/payouts?status=pending
+2. Kiểm tra response",HTTP 200 — Trả về payouts có status tương ứng,Medium,Positive,ADMIN
+Admin,Payout,ADM-PAY-003,Duyệt yêu cầu rút tiền,Kiểm tra approve payout,Admin đăng nhập + payout pending,"1. POST /api/v1/admin/payouts/{id}/approve
+2. Kiểm tra response",HTTP 200 — Payout status → approved,High,Positive,ADMIN
+Admin,Payout,ADM-PAY-004,Từ chối yêu cầu rút tiền,Kiểm tra reject payout,Admin đăng nhập + payout pending,"1. POST /api/v1/admin/payouts/{id}/reject
+2. Kiểm tra response",HTTP 200 — Payout status → rejected,Medium,Positive,ADMIN
+Admin,Payout,ADM-PAY-005,Đánh dấu đã chuyển khoản,Kiểm tra mark paid,Admin đăng nhập + payout approved,"1. POST /api/v1/admin/payouts/{id}/pay
+2. Kiểm tra response",HTTP 200 — Payout status → paid,High,Positive,ADMIN
+Admin,Payout,ADM-PAY-006,Đánh dấu chuyển khoản thất bại,Kiểm tra mark failed,Admin đăng nhập + payout approved,"1. POST /api/v1/admin/payouts/{id}/fail
+2. Kiểm tra response",HTTP 200 — Payout status → failed,Medium,Positive,ADMIN
+Integration,Google OAuth,INT-GOA-001,Lấy URL kết nối Google Calendar,Kiểm tra authorize URL,Mentor đăng nhập,"1. GET /api/v1/integrations/google/oauth/authorize
+2. Kiểm tra response",HTTP 200 — Trả về authorizationUrl,Medium,Positive,MENTOR
+Integration,Google OAuth,INT-GOA-002,Google OAuth callback thành công,Kiểm tra callback sau khi authorize,Google trả về code hợp lệ,"1. GET /api/v1/integrations/google/oauth/callback với code + state
+2. Kiểm tra redirect",HTTP 302 — Redirect tới frontend với google=connected,Medium,Positive,Public
+Integration,Google OAuth,INT-GOA-003,Google OAuth callback thất bại,Kiểm tra callback khi user deny,Google trả về error,"1. GET /api/v1/integrations/google/oauth/callback với error=access_denied
+2. Kiểm tra redirect",HTTP 302 — Redirect tới frontend với google=error,Medium,Negative,Public
+Integration,Google OAuth,INT-GOA-004,Kiểm tra trạng thái kết nối Google,Kiểm tra status endpoint,Mentor đăng nhập,"1. GET /api/v1/integrations/google/oauth/status
+2. Kiểm tra response",HTTP 200 — Trả về {connected: true/false},Medium,Positive,MENTOR
+=== FLOW CHÍNH ===,,,,,,,,,,
+Flow,Đăng ký → Xác minh,FLW-REG-001,Flow đăng ký hoàn chỉnh,Kiểm tra end-to-end từ đăng ký đến xác minh,Không,"1. POST /auth/register
+2. Nhận email xác minh
+3. POST /auth/verify-email
+4. POST /auth/login",User đăng ký thành công → nhận email → xác minh → đăng nhập → nhận token. User profile trống được tạo tự động.,Critical,E2E,Public
+Flow,Ứng tuyển Mentor,FLW-MNT-001,Flow trở thành Mentor hoàn chỉnh,Kiểm tra flow user → mentor,"User đã đăng ký, active","1. POST /mentor-requests (submit đơn)
+2. Admin approve đơn
+3. User được gán role MENTOR
+4. PUT /mentors/me (cập nhật profile)
+5. POST /mentors/me/profile/submit",User nộp đơn → Admin duyệt → User thành MENTOR → Cập nhật profile → Gửi verify hồ sơ.,Critical,E2E,USER → ADMIN
+Flow,Mua gói dịch vụ,FLW-ORD-001,Flow mua gói hoàn chỉnh (Mentee → VNPay → Booking),Kiểm tra end-to-end từ đặt mua đến tạo booking,"Mentee đăng nhập, gói active","1. POST /orders/checkout → nhận paymentUrl
+2. User thanh toán VNPay
+3. VNPay IPN callback → order = paid
+4. Booking tự động tạo + sessions
+5. Chat room booking tự động tạo",Mentee checkout → VNPay → IPN → Order paid → Booking created → Chat room created,Critical,E2E,USER → System
+Flow,Học tập,FLW-BKG-001,Flow buổi học hoàn chỉnh (Schedule → Complete → Review),Kiểm tra full flow buổi học,"Booking đã tạo, sessions pending","1. Mentor lên lịch session (scheduled_at + meeting_url)
+2. Buổi học diễn ra
+3. Mentor đánh dấu complete session
+4. Cả hai upload evidence
+5. Confirm completion
+6. Complete tất cả sessions → Booking completed
+7. Mentee gửi review",Session scheduled → completed → evidence → booking completed → review,Critical,E2E,MENTOR + USER
+Flow,Rút tiền,FLW-PAY-001,Flow rút tiền hoàn chỉnh (Mentor → Admin),Kiểm tra flow payout end-to-end,"Mentor có available balance, booking đã completed","1. Mentor xem revenue-summary
+2. POST /mentors/me/payouts
+3. Admin xem danh sách payouts
+4. Admin approve
+5. Admin mark paid",Mentor yêu cầu rút → Admin duyệt → Admin đánh dấu đã chuyển → Payout status = paid,Critical,E2E,MENTOR → ADMIN
+Flow,Tranh chấp,FLW-DSP-001,Flow tranh chấp hoàn chỉnh,Kiểm tra flow dispute resolution,Booking có vấn đề,"1. User tạo dispute
+2. Upload bằng chứng
+3. Admin review dispute
+4. Admin resolve (có thể refund)
+5. Order status update nếu refund",User mở dispute → bổ sung bằng chứng → Admin giải quyết → Refund nếu cần,High,E2E,USER → ADMIN
+Flow,Báo cáo vi phạm,FLW-RPT-001,Flow báo cáo vi phạm hoàn chỉnh,Kiểm tra flow moderation report,User phát hiện vi phạm,"1. User tạo moderation report
+2. Thêm bằng chứng (evidence)
+3. Admin review danh sách reports
+4. Admin resolve report (suspend user nếu cần)",User báo cáo → thêm bằng chứng → Admin xử lý → Hành động (warning/suspend),High,E2E,USER → ADMIN
+Flow,Báo cáo tiến trình,FLW-SRP-001,Flow báo cáo tiến trình buổi học,Kiểm tra flow session report request,"Booking đang in_progress, mentor muốn mentee nộp báo cáo","1. Mentor tạo report request cho booking
+2. Mentee nhận và nộp báo cáo
+3. Mentor duyệt báo cáo",Mentor yêu cầu → Mentee nộp → Mentor duyệt/từ chối,Medium,E2E,MENTOR + USER

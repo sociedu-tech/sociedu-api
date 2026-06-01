@@ -137,6 +137,14 @@ public class PayoutServiceImpl implements PayoutService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PayoutRequestResponse getAdminPayoutRequest(UUID payoutRequestId) {
+        PayoutRequest payout = payoutRequestRepository.findById(payoutRequestId)
+                .orElseThrow(() -> new AppException(FinanceErrorCode.PAYOUT_REQUEST_NOT_FOUND, "Payout request not found"));
+        return mapToResponse(payout, false);
+    }
+
+    @Override
     @Transactional
     public PayoutRequestResponse approvePayoutRequest(UUID adminId, UUID payoutRequestId) {
         PayoutRequest payout = payoutRequestRepository.findById(payoutRequestId)

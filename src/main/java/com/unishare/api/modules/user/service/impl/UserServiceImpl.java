@@ -1,6 +1,8 @@
 package com.unishare.api.modules.user.service.impl;
 
 import com.unishare.api.common.dto.AppException;
+import com.unishare.api.config.cache.CacheNames;
+import com.unishare.api.config.cache.EvictUserProfileCaches;
 import com.unishare.api.modules.user.dto.*;
 import com.unishare.api.modules.user.entity.*;
 import com.unishare.api.modules.user.exception.UserErrorCode;
@@ -8,6 +10,9 @@ import com.unishare.api.modules.user.mapper.UserMapper;
 import com.unishare.api.modules.user.repository.*;
 import com.unishare.api.modules.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +36,7 @@ public class UserServiceImpl implements UserService {
     // Profile
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.USER_PROFILE, key = "#userId")
     public UserProfileResponse getProfile(UUID userId) {
         return profileRepository.findById(userId)
                 .map(userMapper::toResponse)
@@ -42,10 +48,24 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId")
+    public UserFullProfileResponse getFullProfile(UUID userId) {
+        return UserFullProfileResponse.builder()
+                .profile(getProfile(userId))
+                .educations(getEducations(userId))
+                .languages(getLanguages(userId))
+                .experiences(getExperiences(userId))
+                .certificates(getCertificates(userId))
+                .build();
+    }
+
+    @Override
     @Transactional
+    @EvictUserProfileCaches
     public UserProfileResponse updateProfile(UUID userId, UserProfileRequest request) {
         UserProfile profile = profileRepository.findById(userId)
-                .orElse(new UserProfile()); // Support creating profile on first update
+                .orElse(new UserProfile());
         
         if (profile.getUserId() == null) {
             profile.setUserId(userId);
@@ -84,6 +104,7 @@ public class UserServiceImpl implements UserService {
     // Education
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.USER_EDUCATIONS, key = "#userId")
     public List<UserEducationResponse> getEducations(UUID userId) {
         return educationRepository.findByUserId(userId).stream()
                 .map(userMapper::toResponse)
@@ -92,6 +113,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_EDUCATIONS, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserEducationResponse addEducation(UUID userId, UserEducationRequest request) {
         UserEducation education = userMapper.toEntity(request, userId);
         UserEducation saved = educationRepository.save(education);
@@ -100,6 +125,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_EDUCATIONS, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserEducationResponse updateEducation(UUID userId, UUID educationId, UserEducationRequest request) {
         UserEducation education = educationRepository.findById(educationId)
                 .filter(e -> e.getUserId().equals(userId))
@@ -121,6 +150,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_EDUCATIONS, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public void deleteEducation(UUID userId, UUID educationId) {
         UserEducation education = educationRepository.findById(educationId)
                 .filter(e -> e.getUserId().equals(userId))
@@ -131,6 +164,7 @@ public class UserServiceImpl implements UserService {
     // Language
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.USER_LANGUAGES, key = "#userId")
     public List<UserLanguageResponse> getLanguages(UUID userId) {
         return languageRepository.findByUserId(userId).stream()
                 .map(userMapper::toResponse)
@@ -139,6 +173,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_LANGUAGES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserLanguageResponse addLanguage(UUID userId, UserLanguageRequest request) {
         UserLanguage language = userMapper.toEntity(request, userId);
         UserLanguage saved = languageRepository.save(language);
@@ -147,6 +185,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_LANGUAGES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserLanguageResponse updateLanguage(UUID userId, UUID languageId, UserLanguageRequest request) {
         UserLanguage language = languageRepository.findById(languageId)
                 .filter(l -> l.getUserId().equals(userId))
@@ -161,6 +203,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_LANGUAGES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public void deleteLanguage(UUID userId, UUID languageId) {
         UserLanguage language = languageRepository.findById(languageId)
                 .filter(l -> l.getUserId().equals(userId))
@@ -171,6 +217,7 @@ public class UserServiceImpl implements UserService {
     // Experience
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.USER_EXPERIENCES, key = "#userId")
     public List<UserExperienceResponse> getExperiences(UUID userId) {
         return experienceRepository.findByUserId(userId).stream()
                 .map(userMapper::toResponse)
@@ -179,6 +226,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_EXPERIENCES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserExperienceResponse addExperience(UUID userId, UserExperienceRequest request) {
         UserExperience experience = userMapper.toEntity(request, userId);
         UserExperience saved = experienceRepository.save(experience);
@@ -187,6 +238,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_EXPERIENCES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserExperienceResponse updateExperience(UUID userId, UUID experienceId, UserExperienceRequest request) {
         UserExperience experience = experienceRepository.findById(experienceId)
                 .filter(e -> e.getUserId().equals(userId))
@@ -207,6 +262,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_EXPERIENCES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public void deleteExperience(UUID userId, UUID experienceId) {
         UserExperience experience = experienceRepository.findById(experienceId)
                 .filter(e -> e.getUserId().equals(userId))
@@ -217,6 +276,7 @@ public class UserServiceImpl implements UserService {
     // Certificate
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.USER_CERTIFICATES, key = "#userId")
     public List<UserCertificateResponse> getCertificates(UUID userId) {
         return certificateRepository.findByUserId(userId).stream()
                 .map(userMapper::toResponse)
@@ -225,6 +285,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_CERTIFICATES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserCertificateResponse addCertificate(UUID userId, UserCertificateRequest request) {
         UserCertificate certificate = userMapper.toEntity(request, userId);
         UserCertificate saved = certificateRepository.save(certificate);
@@ -233,6 +297,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_CERTIFICATES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public UserCertificateResponse updateCertificate(UUID userId, UUID certificateId, UserCertificateRequest request) {
         UserCertificate certificate = certificateRepository.findById(certificateId)
                 .filter(c -> c.getUserId().equals(userId))
@@ -251,6 +319,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.USER_CERTIFICATES, key = "#userId"),
+            @CacheEvict(cacheNames = CacheNames.USER_FULL_PROFILE, key = "#userId"),
+    })
     public void deleteCertificate(UUID userId, UUID certificateId) {
         UserCertificate certificate = certificateRepository.findById(certificateId)
                 .filter(c -> c.getUserId().equals(userId))
@@ -258,4 +330,3 @@ public class UserServiceImpl implements UserService {
         certificateRepository.delete(certificate);
     }
 }
-

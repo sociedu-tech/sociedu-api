@@ -18,6 +18,7 @@ public interface PayoutService {
     // Admin APIs
     Page<PayoutRequestResponse> getAllPayoutRequests(Pageable pageable);
     Page<PayoutRequestResponse> getPayoutRequestsByStatus(String status, Pageable pageable);
+    PayoutRequestResponse getAdminPayoutRequest(UUID payoutRequestId);
     PayoutRequestResponse approvePayoutRequest(UUID adminId, UUID payoutRequestId);
     PayoutRequestResponse rejectPayoutRequest(UUID adminId, UUID payoutRequestId, AdminReviewPayoutRequest reviewRequest);
     PayoutRequestResponse markPaid(UUID adminId, UUID payoutRequestId, AdminReviewPayoutRequest reviewRequest);

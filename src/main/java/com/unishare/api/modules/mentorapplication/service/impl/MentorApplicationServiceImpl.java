@@ -5,6 +5,7 @@ import com.unishare.api.common.constants.MentorVerificationStatuses;
 import com.unishare.api.common.constants.Roles;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
+import com.unishare.api.config.cache.ApplicationCacheEviction;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.common.event.MentorApplicationSubmittedEvent;
 import com.unishare.api.common.event.MentorRequestApprovedEvent;
@@ -46,6 +47,7 @@ public class MentorApplicationServiceImpl implements MentorApplicationService {
     private final MentorProfileRepository mentorProfileRepository;
     private final UserAccountService userAccountService;
     private final DomainEventPublisher eventPublisher;
+    private final ApplicationCacheEviction cacheEviction;
 
     @Override
     @Transactional
@@ -139,6 +141,7 @@ public class MentorApplicationServiceImpl implements MentorApplicationService {
 
         userAccountService.replaceSingleRole(app.getUserId(), Roles.MENTOR);
         upsertMentorProfile(app);
+        cacheEviction.evictMentorProfile(app.getUserId());
         eventPublisher.publish(new MentorRequestApprovedEvent(id, app.getUserId(), adminId, note));
         return toResponse(app);
     }

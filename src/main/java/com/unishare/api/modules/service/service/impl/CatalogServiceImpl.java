@@ -1,6 +1,8 @@
 package com.unishare.api.modules.service.service.impl;
 
 import com.unishare.api.common.dto.AppException;
+import com.unishare.api.config.cache.CacheNames;
+import com.unishare.api.config.cache.EvictAllCatalogCaches;
 import com.unishare.api.modules.service.dto.MentorDto.CurriculumItemRequest;
 import com.unishare.api.modules.service.dto.MentorDto.CurriculumItemResponse;
 import com.unishare.api.modules.service.dto.MentorDto.ServicePackageResponse;
@@ -20,6 +22,7 @@ import com.unishare.api.modules.service.repository.ServicePackageRepository;
 import com.unishare.api.modules.service.repository.ServicePackageVersionRepository;
 import com.unishare.api.modules.service.service.CatalogService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,6 +46,7 @@ public class CatalogServiceImpl implements CatalogService {
     private final OrderRepository orderRepository;
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public List<ServicePackageResponse> savePackages(UUID mentorId, List<SaveMentorPackagesRequest.MentorPackageRequest> packages) {
         if (packages == null) {
@@ -160,6 +164,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.MENTOR_SERVICE_PACKAGES,
+            key = "T(com.unishare.api.config.cache.CacheKeys).mentorPackages(#mentorId, #keyword, #pageable)"
+    )
     public Page<ServicePackageResponse> getMentorPackages(UUID mentorId, String keyword, Pageable pageable) {
         String kw = normalizeKeyword(keyword);
         Page<ServicePackage> page = (kw == null)
@@ -170,6 +178,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.MY_SERVICE_PACKAGES,
+            key = "T(com.unishare.api.config.cache.CacheKeys).mentorPackages(#mentorId, #keyword, #pageable)"
+    )
     public Page<ServicePackageResponse> getMyPackages(UUID mentorId, String keyword, Pageable pageable) {
         String kw = normalizeKeyword(keyword);
         Page<ServicePackage> page = (kw == null)
@@ -180,11 +192,16 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.MY_SERVICE_PACKAGE, key = "T(com.unishare.api.config.cache.CacheKeys).mentorPackage(#mentorId, #packageId)")
     public ServicePackageResponse getMyPackage(UUID mentorId, UUID packageId) {
         return mapToPackageResponse(requireOwnedPackage(mentorId, packageId));
     }
 
     @Override
+    @Cacheable(
+            cacheNames = CacheNames.ACTIVE_SERVICE_PACKAGES,
+            key = "T(com.unishare.api.config.cache.CacheKeys).activePackages(#mentorId, #keyword, #pageable)"
+    )
     public Page<ServicePackageResponse> getActivePackages(UUID mentorId, String keyword, Pageable pageable) {
         String kw = normalizeKeyword(keyword);
         Page<ServicePackage> page;
@@ -199,6 +216,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @Cacheable(cacheNames = CacheNames.SERVICE_PACKAGE, key = "#packageId")
     public ServicePackageResponse getActivePackage(UUID packageId) {
         ServicePackage servicePackage = servicePackageRepository.findActiveById(packageId)
                 .orElseThrow(() -> new AppException(ServiceErrorCode.PACKAGE_NOT_FOUND, "Package not found"));
@@ -206,6 +224,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public ServicePackageResponse createPackage(UUID mentorId, CreateServicePackageRequest request) {
         validateCreatePackageRequest(request);
@@ -235,6 +254,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.SERVICE_PACKAGE_VERSION,
+            key = "T(com.unishare.api.config.cache.CacheKeys).pagedByPackage(#packageId, #pageable)"
+    )
     public Page<ServicePackageVersionResponse> getPackageVersions(UUID mentorId, UUID packageId, Pageable pageable) {
         ServicePackage pkg = requireOwnedPackage(mentorId, packageId);
         return servicePackageVersionRepository.findByPackageId(pkg.getId(), pageable)
@@ -243,12 +266,17 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.SERVICE_PACKAGE_VERSION,
+            key = "T(com.unishare.api.config.cache.CacheKeys).packageVersion(#packageId, #versionId)"
+    )
     public ServicePackageVersionResponse getPackageVersion(UUID mentorId, UUID packageId, UUID versionId) {
         ServicePackageVersion version = requireOwnedVersion(mentorId, packageId, versionId);
         return mapToVersionResponse(version);
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public ServicePackageResponse createPackageVersion(UUID mentorId, UUID packageId, CreateServicePackageVersionRequest request) {
         ServicePackage pkg = servicePackageRepository.findById(packageId)
@@ -283,6 +311,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public ServicePackageResponse updatePackage(UUID mentorId, UUID packageId, UpdateServicePackageRequest request) {
         ServicePackage pkg = servicePackageRepository.findById(packageId)
@@ -297,6 +326,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public ServicePackageResponse togglePackage(UUID mentorId, UUID packageId) {
         ServicePackage pkg = servicePackageRepository.findById(packageId)
@@ -310,6 +340,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public void deletePackage(UUID mentorId, UUID packageId) {
         ServicePackage pkg = servicePackageRepository.findById(packageId)
@@ -386,6 +417,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public CurriculumItemResponse addCurriculumItem(UUID mentorId, UUID packageId, UUID versionId, CurriculumItemRequest request) {
         ServicePackageVersion ver = requireOwnedVersionForMutation(mentorId, packageId, versionId);
@@ -404,6 +436,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public CurriculumItemResponse updateCurriculumItem(UUID mentorId, UUID packageId, UUID versionId, UUID curriculumId, CurriculumItemRequest request) {
         ServicePackageVersion ver = requireOwnedVersionForMutation(mentorId, packageId, versionId);
@@ -427,6 +460,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.CURRICULUM,
+            key = "T(com.unishare.api.config.cache.CacheKeys).curriculum(#packageId, #versionId, #pageable)"
+    )
     public Page<CurriculumItemResponse> listCurriculum(UUID mentorId, UUID packageId, UUID versionId, Pageable pageable) {
         ServicePackageVersion ver = requireOwnedVersion(mentorId, packageId, versionId);
         return packageCurriculumRepository.findByPackageVersionIdOrderByOrderIndexAsc(ver.getId(), pageable)
@@ -434,6 +471,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public void deleteCurriculumItem(UUID mentorId, UUID curriculumId) {
         PackageCurriculum c = packageCurriculumRepository.findById(curriculumId)
@@ -446,6 +484,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public void deleteCurriculumItem(UUID mentorId, UUID packageId, UUID versionId, UUID curriculumId) {
         ServicePackageVersion version = requireOwnedVersionForMutation(mentorId, packageId, versionId);
@@ -457,6 +496,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.ACTIVE_PACKAGE_VERSIONS,
+            key = "T(com.unishare.api.config.cache.CacheKeys).pagedByPackage(#packageId, #pageable)"
+    )
     public Page<ServicePackageVersionResponse> getActivePackageVersions(UUID packageId, Pageable pageable) {
         ServicePackage pkg = servicePackageRepository.findActiveById(packageId)
                 .orElseThrow(() -> new AppException(ServiceErrorCode.PACKAGE_NOT_FOUND, "Package not found"));
@@ -466,6 +509,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.ACTIVE_PACKAGE_VERSION,
+            key = "T(com.unishare.api.config.cache.CacheKeys).packageVersion(#packageId, #versionId)"
+    )
     public ServicePackageVersionResponse getActivePackageVersion(UUID packageId, UUID versionId) {
         ServicePackage pkg = servicePackageRepository.findActiveById(packageId)
                 .orElseThrow(() -> new AppException(ServiceErrorCode.PACKAGE_NOT_FOUND, "Package not found"));
@@ -477,6 +524,10 @@ public class CatalogServiceImpl implements CatalogService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(
+            cacheNames = CacheNames.ACTIVE_CURRICULUM,
+            key = "T(com.unishare.api.config.cache.CacheKeys).curriculum(#packageId, #versionId, #pageable)"
+    )
     public Page<CurriculumItemResponse> listActiveCurriculum(UUID packageId, UUID versionId, Pageable pageable) {
         ServicePackage pkg = servicePackageRepository.findActiveById(packageId)
                 .orElseThrow(() -> new AppException(ServiceErrorCode.PACKAGE_NOT_FOUND, "Package not found"));
@@ -574,6 +625,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public ServicePackageVersionResponse updatePackageVersion(UUID mentorId, UUID packageId, UUID versionId, UpdateServicePackageVersionRequest request) {
         ServicePackageVersion version = requireOwnedVersionForMutation(mentorId, packageId, versionId);
@@ -585,6 +637,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public void deletePackageVersion(UUID mentorId, UUID packageId, UUID versionId) {
         ServicePackageVersion version = requireOwnedVersionForMutation(mentorId, packageId, versionId);
@@ -602,6 +655,7 @@ public class CatalogServiceImpl implements CatalogService {
     }
 
     @Override
+    @EvictAllCatalogCaches
     @Transactional
     public ServicePackageVersionResponse setDefaultVersion(UUID mentorId, UUID packageId, UUID versionId) {
         ServicePackageVersion version = requireOwnedVersionForMutation(mentorId, packageId, versionId);
