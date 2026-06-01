@@ -47,8 +47,10 @@ public class ReviewServiceImpl implements ReviewService {
             throw new AppException(BookingErrorCode.REVIEW_ACCESS_DENIED, "Only the buyer can review this booking");
         }
 
-        if (!"completed".equalsIgnoreCase(booking.getStatus())) {
-            throw new AppException(BookingErrorCode.BOOKING_NOT_COMPLETED, "Cannot review a booking that is not completed");
+        if (!"completed".equalsIgnoreCase(booking.getStatus()) &&
+                !"in_progress".equalsIgnoreCase(booking.getStatus()) &&
+                !"scheduled".equalsIgnoreCase(booking.getStatus())) {
+            throw new AppException(BookingErrorCode.BOOKING_NOT_COMPLETED, "Cannot review a booking that is not completed, in progress, or scheduled");
         }
 
         if (bookingReviewRepository.existsByBookingIdAndReviewerId(bookingId, reviewerId)) {

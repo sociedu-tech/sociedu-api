@@ -14,6 +14,7 @@ import com.unishare.api.modules.mentor.exception.MentorErrorCode;
 import com.unishare.api.modules.mentor.repository.MentorProfileRepository;
 import com.unishare.api.modules.user.entity.UserProfile;
 import com.unishare.api.modules.user.repository.UserProfileRepository;
+import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +46,9 @@ class ReviewServiceImplTest {
 
     @Mock
     private UserProfileRepository userProfileRepository;
+
+    @Mock
+    private DomainEventPublisher eventPublisher;
 
     @InjectMocks
     private ReviewServiceImpl reviewService;
@@ -149,7 +153,7 @@ class ReviewServiceImplTest {
         CreateReviewRequest request = new CreateReviewRequest();
         request.setRating(5);
 
-        booking.setStatus("scheduled");
+        booking.setStatus("canceled");
 
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
@@ -157,6 +161,41 @@ class ReviewServiceImplTest {
                 reviewService.createReview(reviewerId, bookingId, request));
 
         assertEquals(BookingErrorCode.BOOKING_NOT_COMPLETED.getCode(), ex.getExceptionCode().getCode());
+    }
+
+    @Test
+    void createReview_BookingInProgress_Success() {
+        CreateReviewRequest request = new CreateReviewRequest();
+        request.setRating(5);
+        request.setComment("Tuyệt vời!");
+
+        booking.setStatus("in_progress");
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(bookingReviewRepository.existsByBookingIdAndReviewerId(bookingId, reviewerId)).thenReturn(false);
+        when(mentorProfileRepository.findById(mentorId)).thenReturn(Optional.of(mentorProfile));
+        when(userProfileRepository.findById(reviewerId)).thenReturn(Optional.of(userProfile));
+
+        BookingReview savedReview = new BookingReview();
+        savedReview.setId(UUID.randomUUID());
+        savedReview.setBookingId(bookingId);
+        savedReview.setReviewerId(reviewerId);
+        savedReview.setMentorId(mentorId);
+        savedReview.setPackageId(packageId);
+        savedReview.setRating(5);
+        savedReview.setComment("Tuyệt vời!");
+
+        when(bookingReviewRepository.save(any(BookingReview.class))).thenReturn(savedReview);
+
+        ReviewResponse response = reviewService.createReview(reviewerId, bookingId, request);
+
+        assertNotNull(response);
+        assertEquals(5, response.getRating());
+        assertEquals("Tuyệt vời!", response.getComment());
+        assertEquals("Huy Nguyen", response.getReviewerName());
+
+        verify(bookingReviewRepository).save(any(BookingReview.class));
+        verify(mentorProfileRepository).updateRatingIncrementally(mentorId, 5);
     }
 
     @Test
