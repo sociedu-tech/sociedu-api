@@ -302,11 +302,7 @@ public class DomainNotificationHandler {
         return new NotificationDispatchCommand(userId, title, content, type, referenceType, referenceId, metadata);
     }
 
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
->>>>>>> 86db1e0 (Add session report feature and progress tracking)
+
     private List<NotificationDispatchCommand> onModerationReportCreated(ModerationReportCreatedEvent e) {
         List<NotificationDispatchCommand> commands = new ArrayList<>();
         var meta = Map.<String, Object>of(
