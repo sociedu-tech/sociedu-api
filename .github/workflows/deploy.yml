@@ -31,8 +31,8 @@ jobs:
           script: |
             set -euo pipefail
 
-            REPO_PATH="${REPO_PATH:-/home/sociedu/sociedu_api}"
-            APP_HOME="${APP_HOME:-/home/sociedu/sociedu_api}"
+            REPO_PATH="${REPO_PATH:-/home/sociedu/sociedu-api}"
+            APP_HOME="${APP_HOME:-/home/sociedu/sociedu-api}"
             RELEASE_ID="$(date +%Y%m%d%H%M%S)-${GIT_SHA:0:7}"
             RELEASE_DIR="${APP_HOME}/releases/${RELEASE_ID}"
             CURRENT="${APP_HOME}/current"
