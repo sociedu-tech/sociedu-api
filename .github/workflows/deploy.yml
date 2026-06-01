@@ -43,12 +43,30 @@ jobs:
             echo "app_home=${APP_HOME}"
             echo "release=${RELEASE_ID}"
 
-            for cmd in git java rar pm2; do
+            # Cài dependency thiếu (chạy root)
+            if ! command -v rar >/dev/null 2>&1; then
+              echo "Đang cài rar..."
+              apt-get update -qq
+              DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rar unrar || true
+            fi
+            if ! command -v pm2 >/dev/null 2>&1; then
+              echo "Đang cài pm2..."
+              npm install -g pm2 || true
+            fi
+
+            for cmd in git java pm2; do
               if ! command -v "${cmd}" >/dev/null 2>&1; then
                 echo "Thiếu lệnh: ${cmd}"
                 exit 1
               fi
             done
+
+            USE_RAR=true
+            if ! command -v rar >/dev/null 2>&1; then
+              echo "Cảnh báo: không cài được rar — dùng .tar.gz thay thế"
+              USE_RAR=false
+              ARCHIVE="${APP_HOME}/archives/sociedu-api-${RELEASE_ID}.tar.gz"
+            fi
 
             mkdir -p "${APP_HOME}/releases" "${APP_HOME}/archives"
             [[ -d "${REPO_PATH}/.git" ]] || { echo "Chưa clone repo tại ${REPO_PATH}"; exit 1; }
@@ -74,8 +92,12 @@ jobs:
             cp build/libs/*.jar "${RELEASE_DIR}/app.jar"
 
             cd "${RELEASE_DIR}"
-            rar a -r "${ARCHIVE}" app.jar
-            echo "RAR: ${ARCHIVE}"
+            if [[ "${USE_RAR}" == "true" ]]; then
+              rar a -r "${ARCHIVE}" app.jar
+            else
+              tar -czf "${ARCHIVE}" app.jar
+            fi
+            echo "Archive: ${ARCHIVE}"
 
             ln -sfn "${RELEASE_DIR}" "${CURRENT}"
 
@@ -109,7 +131,7 @@ jobs:
             pm2 save
 
             ls -1dt "${APP_HOME}/releases"/* 2>/dev/null | tail -n +6 | xargs -r rm -rf
-            ls -1dt "${APP_HOME}/archives"/*.rar 2>/dev/null | tail -n +11 | xargs -r rm -f
+            ls -1dt "${APP_HOME}/archives"/* 2>/dev/null | tail -n +11 | xargs -r rm -f
 
             pm2 status sociedu-api
             echo "=== Deploy xong: ${RELEASE_ID} ==="
