@@ -41,7 +41,8 @@ public class DomainNotificationHandler {
                 || event instanceof ModerationReportResolvedEvent
                 || event instanceof BookingReviewCreatedEvent
                 || event instanceof SessionReportRequestedEvent
-                || event instanceof SessionReportSubmittedEvent;
+                || event instanceof SessionReportSubmittedEvent
+                || event instanceof SessionReportReviewedEvent;
     }
 
     public List<NotificationDispatchCommand> resolve(DomainEvent event) {
@@ -102,6 +103,9 @@ public class DomainNotificationHandler {
         if (event instanceof SessionReportSubmittedEvent e) {
             return onSessionReportSubmitted(e);
         }
+        if (event instanceof SessionReportReviewedEvent e) {
+            return onSessionReportReviewed(e);
+        }
         return List.of();
     }
 
@@ -110,19 +114,28 @@ public class DomainNotificationHandler {
                 "orderId", e.orderId().toString(),
                 "mentorId", e.mentorId().toString());
         return List.of(
-                cmd(e.buyerId(), "Đơn hàng đã tạo", "Hoàn tất thanh toán để xác nhận đặt gói mentor.", "ORDER", "order", e.orderId(), meta),
-                cmd(e.mentorId(), "Đơn mới chờ thanh toán", "Học viên vừa tạo đơn — sẽ thông báo lại khi thanh toán thành công.", "ORDER", "order", e.orderId(), meta));
+                cmd(e.buyerId(), "Đơn hàng đã tạo", "Hoàn tất thanh toán để xác nhận đặt gói mentor.", "ORDER", "order", e.orderId(), meta));
     }
 
     private List<NotificationDispatchCommand> onOrderPaid(OrderPaidEvent e) {
-        return List.of(cmd(
-                e.buyerId(),
-                "Thanh toán thành công",
-                "Đơn hàng của bạn đã được thanh toán. Lịch học sẽ được tạo trong giây lát.",
-                "ORDER",
-                "order",
-                e.orderId(),
-                Map.of("orderId", e.orderId().toString())));
+        var meta = Map.<String, Object>of("orderId", e.orderId().toString());
+        return List.of(
+                cmd(
+                        e.buyerId(),
+                        "Thanh toán thành công",
+                        "Đơn hàng của bạn đã được thanh toán. Lịch học sẽ được tạo trong giây lát.",
+                        "ORDER",
+                        "order",
+                        e.orderId(),
+                        meta),
+                cmd(
+                        e.mentorId(),
+                        "Học viên đã thanh toán",
+                        "Học viên vừa thanh toán đơn hàng. Booking mentoring sẽ được kích hoạt trong giây lát.",
+                        "ORDER",
+                        "order",
+                        e.orderId(),
+                        meta));
     }
 
     private List<NotificationDispatchCommand> onOrderPaymentFailed(OrderPaymentFailedEvent e) {
@@ -141,8 +154,7 @@ public class DomainNotificationHandler {
                 "bookingId", e.bookingId().toString(),
                 "orderId", e.orderId().toString());
         return List.of(
-                cmd(e.buyerId(), "Lịch học đã sẵn sàng", "Gói đã kích hoạt — xem buổi học và lịch trong mục Phiên học.", "BOOKING", "booking", e.bookingId(), meta),
-                cmd(e.mentorId(), "Học viên mới", "Có booking mới từ thanh toán thành công. Kiểm tra lịch dạy và học viên.", "BOOKING", "booking", e.bookingId(), meta));
+                cmd(e.buyerId(), "Lịch học đã sẵn sàng", "Gói đã kích hoạt — xem buổi học và lịch trong mục Phiên học.", "BOOKING", "booking", e.bookingId(), meta));
     }
 
     private List<NotificationDispatchCommand> onBookingCompleted(BookingCompletedEvent e) {
@@ -288,7 +300,8 @@ public class DomainNotificationHandler {
         String title = "Lịch học mới được xếp";
         String content = "Buổi học '" + e.sessionTitle() + "' đã được xếp lịch vào lúc " + e.scheduledAt() + ".";
         return List.of(
-                cmd(e.buyerId(), title, content, "BOOKING", "booking_session", e.sessionId(), meta));
+                cmd(e.buyerId(), title, content, "BOOKING", "booking_session", e.sessionId(), meta),
+                cmd(e.mentorId(), title, content, "BOOKING", "booking_session", e.sessionId(), meta));
     }
 
     private static NotificationDispatchCommand cmd(
@@ -371,7 +384,8 @@ public class DomainNotificationHandler {
     private List<NotificationDispatchCommand> onSessionReportRequested(SessionReportRequestedEvent e) {
         var meta = Map.<String, Object>of(
                 "requestId", e.requestId().toString(),
-                "bookingId", e.bookingId().toString());
+                "bookingId", e.bookingId().toString(),
+                "action", "submit");
         return List.of(cmd(
                 e.menteeId(),
                 "Yêu cầu nộp báo cáo mới",
@@ -385,7 +399,8 @@ public class DomainNotificationHandler {
     private List<NotificationDispatchCommand> onSessionReportSubmitted(SessionReportSubmittedEvent e) {
         var meta = Map.<String, Object>of(
                 "requestId", e.requestId().toString(),
-                "bookingId", e.bookingId().toString());
+                "bookingId", e.bookingId().toString(),
+                "action", "review");
         return List.of(cmd(
                 e.mentorId(),
                 "Học viên đã nộp báo cáo",
@@ -395,6 +410,28 @@ public class DomainNotificationHandler {
                 e.requestId(),
                 meta));
     }
+
+    private List<NotificationDispatchCommand> onSessionReportReviewed(SessionReportReviewedEvent e) {
+        boolean approved = "APPROVED".equalsIgnoreCase(e.status());
+        var meta = Map.<String, Object>of(
+                "requestId", e.requestId().toString(),
+                "bookingId", e.bookingId().toString(),
+                "status", e.status(),
+                "action", approved ? "view" : "resubmit");
+        String title = approved ? "Báo cáo đã được duyệt" : "Báo cáo cần chỉnh sửa";
+        String content = approved
+                ? "Mentor đã duyệt báo cáo: " + e.title()
+                : "Mentor yêu cầu bạn chỉnh sửa báo cáo: " + e.title();
+        return List.of(cmd(
+                e.menteeId(),
+                title,
+                content,
+                "REPORT_REQUEST",
+                "report_request",
+                e.requestId(),
+                meta));
+    }
+
     private static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }

@@ -6,6 +6,7 @@ import com.unishare.api.common.constants.SessionStatuses;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.common.event.BookingCreatedEvent;
+import com.unishare.api.common.event.DomainEvent;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.modules.booking.dto.*;
 import com.unishare.api.modules.booking.entity.Booking;
@@ -29,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -76,7 +79,20 @@ public class BookingServiceImpl implements BookingService {
         b.setStatus(BookingStatuses.SCHEDULED);
         b = bookingRepository.save(b);
         seedSessions(b.getId(), snap.serviceId());
-        eventPublisher.publish(new BookingCreatedEvent(b.getId(), orderId, b.getBuyerId(), b.getMentorId()));
+        publishAfterCommit(new BookingCreatedEvent(b.getId(), orderId, b.getBuyerId(), b.getMentorId()));
+    }
+
+    private void publishAfterCommit(DomainEvent event) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    eventPublisher.publish(event);
+                }
+            });
+        } else {
+            eventPublisher.publish(event);
+        }
     }
 
     private void seedSessions(UUID bookingId, UUID versionId) {

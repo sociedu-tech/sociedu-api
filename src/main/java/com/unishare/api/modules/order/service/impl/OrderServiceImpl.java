@@ -177,7 +177,8 @@ public class OrderServiceImpl implements OrderService {
         }
         orderRepository.save(order);
         if (success) {
-            eventPublisher.publish(new OrderPaidEvent(orderId, order.getBuyerId()));
+            var purchaseCtx = catalogReadService.resolvePurchaseContext(order.getServiceId());
+            eventPublisher.publish(new OrderPaidEvent(orderId, order.getBuyerId(), purchaseCtx.mentorId()));
         } else {
             eventPublisher.publish(new OrderPaymentFailedEvent(orderId, order.getBuyerId()));
         }

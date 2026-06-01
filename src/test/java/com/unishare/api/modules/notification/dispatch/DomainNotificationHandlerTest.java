@@ -2,6 +2,7 @@ package com.unishare.api.modules.notification.dispatch;
 
 import com.unishare.api.common.event.BookingCreatedEvent;
 import com.unishare.api.common.event.OrderCheckoutCreatedEvent;
+import com.unishare.api.common.event.OrderPaidEvent;
 import com.unishare.api.common.event.OrderPaidNotificationMailEvent;
 import com.unishare.api.modules.booking.repository.BookingRepository;
 import org.junit.jupiter.api.Test;
@@ -37,13 +38,24 @@ class DomainNotificationHandlerTest {
     }
 
     @Test
-    void resolve_bookingCreated_notifiesBuyerAndMentor() {
+    void resolve_orderPaid_notifiesBuyerAndMentor() {
+        UUID orderId = UUID.randomUUID();
+        UUID buyerId = UUID.randomUUID();
+        UUID mentorId = UUID.randomUUID();
+        var commands = handler.resolve(new OrderPaidEvent(orderId, buyerId, mentorId));
+        assertEquals(2, commands.size());
+        assertTrue(commands.stream().anyMatch(c -> c.userId().equals(buyerId)));
+        assertTrue(commands.stream().anyMatch(c -> c.userId().equals(mentorId)));
+    }
+
+    @Test
+    void resolve_bookingCreated_notifiesBuyerOnly() {
         UUID bookingId = UUID.randomUUID();
         UUID buyerId = UUID.randomUUID();
         UUID mentorId = UUID.randomUUID();
         var commands = handler.resolve(new BookingCreatedEvent(bookingId, UUID.randomUUID(), buyerId, mentorId));
-        assertEquals(2, commands.size());
+        assertEquals(1, commands.size());
         assertTrue(commands.stream().anyMatch(c -> c.userId().equals(buyerId)));
-        assertTrue(commands.stream().anyMatch(c -> c.userId().equals(mentorId)));
+        assertFalse(commands.stream().anyMatch(c -> c.userId().equals(mentorId)));
     }
 }

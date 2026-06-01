@@ -30,20 +30,23 @@ import java.util.UUID;
 @Slf4j
 public class NotificationServiceImpl implements NotificationService {
 
+    private static final List<String> INBOX_EXCLUDED_TYPES = List.of("CHAT");
+
     private final NotificationRepository notificationRepository;
     private final DeviceTokenRepository deviceTokenRepository;
 
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationResponse> getUserNotifications(UUID userId, Pageable pageable) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+        return notificationRepository
+                .findActionInbox(userId, INBOX_EXCLUDED_TYPES, pageable)
                 .map(this::mapToResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UnreadCountResponse getUnreadCount(UUID userId) {
-        long count = notificationRepository.countByUserIdAndIsReadFalse(userId);
+        long count = notificationRepository.countActionUnread(userId, INBOX_EXCLUDED_TYPES);
         return new UnreadCountResponse(count);
     }
 

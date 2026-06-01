@@ -3,6 +3,7 @@ package com.unishare.api.modules.booking.service.impl;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.common.event.SessionReportRequestedEvent;
+import com.unishare.api.common.event.SessionReportReviewedEvent;
 import com.unishare.api.common.event.SessionReportSubmittedEvent;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.modules.booking.dto.*;
@@ -93,6 +94,8 @@ public class SessionReportServiceImpl implements SessionReportService {
         req.setStatus(newStatus);
         req.setMentorFeedback(dto.getFeedback());
         req = reportRequestRepository.save(req);
+        eventPublisher.publish(new SessionReportReviewedEvent(
+                req.getId(), req.getBookingId(), req.getMentorId(), req.getMenteeId(), req.getTitle(), newStatus));
         return toResponse(req);
     }
 
