@@ -90,8 +90,19 @@ public class BookingController {
                                                 request)));
         }
 
-        @Operation(summary = "Thêm minh chứng buổi học")
+        @Operation(summary = "Tạo buổi học mới cho Booking (Mentor)")
         @PreAuthorize("hasRole('MENTOR')")
+        @PostMapping("/{bookingId}/sessions")
+        public ResponseEntity<ApiResponse<BookingSessionResponse>> createSession(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @Valid @RequestBody CreateSessionRequest request) {
+                return ResponseEntity.ok(ApiResponse.<BookingSessionResponse>build()
+                                .withData(bookingService.createSession(bookingId, principal.getUserId(), request)));
+        }
+
+        @Operation(summary = "Thêm minh chứng buổi học")
+        @PreAuthorize("hasAnyRole('USER', 'MENTOR', 'ADMIN')")
         @PostMapping("/{bookingId}/sessions/{sessionId}/evidences")
         public ResponseEntity<ApiResponse<EvidenceResponse>> addEvidence(
                         @AuthenticationPrincipal CustomUserPrincipal principal,
@@ -139,5 +150,18 @@ public class BookingController {
                                 .withData(bookingService.confirmSessionCompletion(
                                                 bookingId, sessionId, principal.getUserId(), request))
                                 .withMessage("Da ghi nhan xac nhan buoi hoc"));
+        }
+
+        @Operation(summary = "Cập nhật tiến trình gói dịch vụ (mentor)")
+        @PreAuthorize("hasRole('MENTOR')")
+        @PatchMapping("/{bookingId}/progress")
+        public ResponseEntity<ApiResponse<BookingResponse>> updateProgress(
+                        @AuthenticationPrincipal CustomUserPrincipal principal,
+                        @PathVariable("bookingId") UUID bookingId,
+                        @RequestBody java.util.Map<String, Integer> body) {
+                int progressPercent = body.getOrDefault("progressPercent", 0);
+                return ResponseEntity.ok(ApiResponse.<BookingResponse>build()
+                                .withData(bookingService.updateProgress(bookingId, principal.getUserId(), progressPercent))
+                                .withMessage("Cap nhat tien trinh thanh cong"));
         }
 }

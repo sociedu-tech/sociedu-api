@@ -24,10 +24,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.unishare.api.modules.service.dto.request.SaveMentorPackagesRequest;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -90,6 +92,17 @@ public class MentorCatalogController {
             Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.<Page<ServicePackageResponse>>build()
                 .withData(catalogService.getMyPackages(principal.getUserId(), q, pageable)));
+    }
+
+    @Operation(summary = "Luu danh sach goi dich vu cua toi")
+    @SecurityRequirement(name = OpenApiConfig.BEARER_JWT)
+    @PreAuthorize("hasRole('MENTOR')")
+    @PutMapping("/me/packages")
+    public ResponseEntity<ApiResponse<List<ServicePackageResponse>>> savePackages(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @Valid @RequestBody SaveMentorPackagesRequest request) {
+        return ResponseEntity.ok(ApiResponse.<List<ServicePackageResponse>>build()
+                .withData(catalogService.savePackages(principal.getUserId(), request.getPackages())));
     }
 
     @Operation(summary = "Chi tiet goi dich vu cua toi")

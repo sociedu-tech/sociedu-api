@@ -85,7 +85,10 @@ public class AdminModerationServiceImpl implements AdminModerationService {
     }
 
     private AdminModerationReportResponse toResponse(ModerationReport r) {
-        Map<UUID, UserProfile> profiles = loadProfiles(Set.of(r.getReporterId(), r.getReportedUserId()));
+        Set<UUID> ids = new HashSet<>();
+        if (r.getReporterId() != null) ids.add(r.getReporterId());
+        if (r.getReportedUserId() != null) ids.add(r.getReportedUserId());
+        Map<UUID, UserProfile> profiles = loadProfiles(ids);
         UserProfile reporter = profiles.get(r.getReporterId());
         String targetType = normalizeTargetType(r.getType());
         AdminModerationReportResponse.SessionDisputeDetailDto disputeDetail = null;
@@ -103,6 +106,7 @@ public class AdminModerationServiceImpl implements AdminModerationService {
                 .summary(r.getDescription() != null ? r.getDescription() : r.getReason())
                 .status(mapBeStatusToFe(r.getStatus()))
                 .priority(priorityOf(r))
+                .resolutionNote(r.getResolutionNote())
                 .sessionDispute(disputeDetail)
                 .build();
     }
@@ -122,7 +126,11 @@ public class AdminModerationServiceImpl implements AdminModerationService {
         }
         UUID buyerId = booking != null ? booking.getBuyerId() : null;
         UUID mentorId = booking != null ? booking.getMentorId() : null;
-        Map<UUID, UserProfile> profiles = loadProfiles(Set.of(buyerId, mentorId, r.getReporterId()));
+        Set<UUID> ids = new HashSet<>();
+        if (buyerId != null) ids.add(buyerId);
+        if (mentorId != null) ids.add(mentorId);
+        if (r.getReporterId() != null) ids.add(r.getReporterId());
+        Map<UUID, UserProfile> profiles = loadProfiles(ids);
         String menteeName = buyerId != null && profiles.get(buyerId) != null
                 ? profiles.get(buyerId).getDisplayName() : "Học viên";
         String mentorName = mentorId != null && profiles.get(mentorId) != null

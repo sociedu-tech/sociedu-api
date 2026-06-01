@@ -58,7 +58,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserService userService;
 
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void ensureBookingForOrder(UUID orderId) {
         OrderSnapshot snap = orderService.getOrderSnapshot(orderId);
         if (!OrderStatuses.PAID.equals(snap.status())) {
@@ -188,7 +188,7 @@ public class BookingServiceImpl implements BookingService {
             throw new AppException(BookingErrorCode.SESSION_NOT_FOUND);
         }
 
-        if (req.getScheduledAt() != null || req.getMeetingUrl() != null) {
+        if (req.getScheduledAt() != null || req.getScheduledAtEnd() != null || req.getMeetingUrl() != null) {
             if (!isMentor) {
                 throw new AppException(BookingErrorCode.BOOKING_ACCESS_DENIED, "Chỉ Mentor mới được phép cập nhật lịch học và link meeting.");
             }
@@ -205,6 +205,13 @@ public class BookingServiceImpl implements BookingService {
                 throw new AppException(BookingErrorCode.INVALID_SCHEDULE_TIME, "Lịch học bị trùng với một buổi học khác của Mentor.");
             }
             s.setScheduledAt(req.getScheduledAt());
+        }
+
+        if (req.getScheduledAtEnd() != null) {
+            if (s.getScheduledAt() != null && req.getScheduledAtEnd().isBefore(s.getScheduledAt())) {
+                throw new AppException(BookingErrorCode.INVALID_SCHEDULE_TIME, "Thời gian kết thúc phải sau thời gian bắt đầu.");
+            }
+            s.setScheduledAtEnd(req.getScheduledAtEnd());
         }
 
         if (req.getMeetingUrl() != null) {
@@ -272,6 +279,11 @@ public class BookingServiceImpl implements BookingService {
         }
 
         sessionRepository.save(s);
+
+        if (req.getScheduledAt() != null) {
+            eventPublisher.publish(new com.unishare.api.common.event.SessionScheduledEvent(
+                    b.getId(), s.getId(), b.getBuyerId(), b.getMentorId(), s.getScheduledAt(), s.getTitle()));
+        }
         
         // Aggregate completion check after saving session
         if (SessionStatuses.COMPLETED.equals(s.getStatus())) {
@@ -444,6 +456,8 @@ public class BookingServiceImpl implements BookingService {
         if (Boolean.TRUE.equals(menteeAck) && Boolean.TRUE.equals(mentorAck)) {
             transitionSessionStatus(s, SessionStatuses.COMPLETED);
             s.setCompletedAt(Instant.now());
+            eventPublisher.publish(new com.unishare.api.common.event.SessionCompletedEvent(
+                    b.getId(), s.getId(), b.getBuyerId(), b.getMentorId(), s.getTitle()));
             checkAndCompleteBooking(b);
             return;
         }
@@ -485,11 +499,46 @@ public class BookingServiceImpl implements BookingService {
                 .mentorId(b.getMentorId())
                 .packageId(b.getPackageId())
                 .status(b.getStatus())
+                .progressPercent(b.getProgressPercent())
                 .createdAt(b.getCreatedAt())
                 .sessions(sessions.stream().map(this::mapSession).collect(Collectors.toList()))
                 .build();
     }
 
+    @Override
+    @Transactional
+    public BookingSessionResponse createSession(UUID bookingId, UUID mentorId, CreateSessionRequest req) {
+        Booking b = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
+        if (!b.getMentorId().equals(mentorId)) {
+            throw new AppException(BookingErrorCode.BOOKING_ACCESS_DENIED, "Chỉ Mentor của Booking mới được phép thêm buổi học.");
+        }
+
+        BookingSession s = new BookingSession();
+        s.setBookingId(bookingId);
+        s.setTitle(req.getTitle());
+        s.setStatus(SessionStatuses.PENDING);
+        s.setVersion(1L);
+        s = sessionRepository.save(s);
+
+        return mapSession(s);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse updateProgress(UUID bookingId, UUID mentorId, int progressPercent) {
+        Booking b = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException(BookingErrorCode.BOOKING_NOT_FOUND));
+        if (!b.getMentorId().equals(mentorId)) {
+            throw new AppException(BookingErrorCode.BOOKING_ACCESS_DENIED, "Chỉ Mentor mới được phép cập nhật tiến trình.");
+        }
+        if (progressPercent < 0 || progressPercent > 100) {
+            throw new AppException(BookingErrorCode.INVALID_SCHEDULE_TIME, "Tiến trình phải từ 0 đến 100.");
+        }
+        b.setProgressPercent(progressPercent);
+        bookingRepository.save(b);
+        return toResponse(b);
+    }
     private BookingSessionResponse mapSession(BookingSession s) {
         List<BookingSessionEvidence> evs = evidenceRepository.findByBookingSessionId(s.getId());
         return BookingSessionResponse.builder()
@@ -497,6 +546,7 @@ public class BookingServiceImpl implements BookingService {
                 .curriculumId(s.getCurriculumId())
                 .title(s.getTitle())
                 .scheduledAt(s.getScheduledAt())
+                .scheduledAtEnd(s.getScheduledAtEnd())
                 .completedAt(s.getCompletedAt())
                 .status(s.getStatus())
                 .meetingUrl(s.getMeetingUrl())

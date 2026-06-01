@@ -23,13 +23,16 @@ public class BookingSession {
     @Column(name = "booking_id", nullable = false)
     private UUID bookingId;
 
-    @Column(name = "curriculum_id", nullable = false)
+    @Column(name = "curriculum_id")
     private UUID curriculumId;
 
     private String title;
 
-    @Column(name = "scheduled_at", nullable = false)
+    @Column(name = "scheduled_at")
     private Instant scheduledAt;
+
+    @Column(name = "scheduled_at_end")
+    private Instant scheduledAtEnd;
 
     @Column(name = "completed_at")
     private Instant completedAt;

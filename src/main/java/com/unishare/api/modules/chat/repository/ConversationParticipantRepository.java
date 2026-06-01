@@ -40,6 +40,22 @@ public interface ConversationParticipantRepository extends JpaRepository<Convers
             @Param("userId") UUID userId,
             Pageable pageable);
 
+    @Query(value = """
+            SELECT c.id
+            FROM conversations c
+            LEFT JOIN (
+                SELECT conversation_id, MAX(created_at) AS last_at
+                FROM messages
+                GROUP BY conversation_id
+            ) lm ON lm.conversation_id = c.id
+            ORDER BY COALESCE(lm.last_at, c.created_at) DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*) FROM conversations
+            """,
+            nativeQuery = true)
+    Page<UUID> findAllConversationIdsOrderByRecentActivity(Pageable pageable);
+
     @Query("SELECT COUNT(c) > 0 FROM ConversationParticipant c WHERE c.id.conversationId = :cid AND c.id.userId = :uid")
     boolean isParticipant(@Param("cid") UUID conversationId, @Param("uid") UUID userId);
 

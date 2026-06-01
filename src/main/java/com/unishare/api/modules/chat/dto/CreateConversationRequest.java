@@ -13,9 +13,10 @@ public class CreateConversationRequest {
     @NotNull
     private String type;
 
-    @NotNull
+    /** Optional — chỉ cần thiết khi type = booking */
     private UUID bookingId;
 
     @NotEmpty
     private List<UUID> participantUserIds;
 }
+

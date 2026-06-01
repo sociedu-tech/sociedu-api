@@ -34,7 +34,14 @@ public class DomainNotificationHandler {
                 || event instanceof SessionDisputedEvent
                 || event instanceof MentorApplicationSubmittedEvent
                 || event instanceof MentorRequestApprovedEvent
-                || event instanceof MentorRequestRejectedEvent;
+                || event instanceof MentorRequestRejectedEvent
+                || event instanceof SessionCompletedEvent
+                || event instanceof SessionScheduledEvent
+                || event instanceof ModerationReportCreatedEvent
+                || event instanceof ModerationReportResolvedEvent
+                || event instanceof BookingReviewCreatedEvent
+                || event instanceof SessionReportRequestedEvent
+                || event instanceof SessionReportSubmittedEvent;
     }
 
     public List<NotificationDispatchCommand> resolve(DomainEvent event) {
@@ -73,6 +80,27 @@ public class DomainNotificationHandler {
         }
         if (event instanceof MentorRequestRejectedEvent e) {
             return onMentorRejected(e);
+        }
+        if (event instanceof SessionCompletedEvent e) {
+            return onSessionCompleted(e);
+        }
+        if (event instanceof SessionScheduledEvent e) {
+            return onSessionScheduled(e);
+        }
+        if (event instanceof ModerationReportCreatedEvent e) {
+            return onModerationReportCreated(e);
+        }
+        if (event instanceof ModerationReportResolvedEvent e) {
+            return onModerationReportResolved(e);
+        }
+        if (event instanceof BookingReviewCreatedEvent e) {
+            return onBookingReviewCreated(e);
+        }
+        if (event instanceof SessionReportRequestedEvent e) {
+            return onSessionReportRequested(e);
+        }
+        if (event instanceof SessionReportSubmittedEvent e) {
+            return onSessionReportSubmitted(e);
         }
         return List.of();
     }
@@ -242,6 +270,27 @@ public class DomainNotificationHandler {
                 Map.of("requestId", e.requestId().toString(), "reason", reason)));
     }
 
+    private List<NotificationDispatchCommand> onSessionCompleted(SessionCompletedEvent e) {
+        var meta = Map.<String, Object>of(
+                "bookingId", e.bookingId().toString(),
+                "sessionId", e.sessionId().toString());
+        String title = "Buổi học hoàn thành";
+        String content = "Buổi học '" + e.sessionTitle() + "' đã được xác nhận hoàn thành.";
+        return List.of(
+                cmd(e.buyerId(), title, content, "BOOKING", "booking_session", e.sessionId(), meta),
+                cmd(e.mentorId(), title, content, "BOOKING", "booking_session", e.sessionId(), meta));
+    }
+
+    private List<NotificationDispatchCommand> onSessionScheduled(SessionScheduledEvent e) {
+        var meta = Map.<String, Object>of(
+                "bookingId", e.bookingId().toString(),
+                "sessionId", e.sessionId().toString());
+        String title = "Lịch học mới được xếp";
+        String content = "Buổi học '" + e.sessionTitle() + "' đã được xếp lịch vào lúc " + e.scheduledAt() + ".";
+        return List.of(
+                cmd(e.buyerId(), title, content, "BOOKING", "booking_session", e.sessionId(), meta));
+    }
+
     private static NotificationDispatchCommand cmd(
             UUID userId,
             String title,
@@ -253,6 +302,99 @@ public class DomainNotificationHandler {
         return new NotificationDispatchCommand(userId, title, content, type, referenceType, referenceId, metadata);
     }
 
+
+    private List<NotificationDispatchCommand> onModerationReportCreated(ModerationReportCreatedEvent e) {
+        List<NotificationDispatchCommand> commands = new ArrayList<>();
+        var meta = Map.<String, Object>of(
+                "reportId", e.reportId().toString(),
+                "type", e.type());
+
+        // Notify reported user if any
+        if (e.reportedUserId() != null) {
+            commands.add(cmd(
+                    e.reportedUserId(),
+                    "Báo cáo vi phạm liên quan đến bạn",
+                    "Hệ thống ghi nhận một báo cáo liên quan đến bạn. Lý do: " + e.reason(),
+                    "MODERATION",
+                    "moderation_report",
+                    e.reportId(),
+                    meta
+            ));
+        }
+
+        // Notify Admins
+        for (UUID adminId : adminRecipientResolver.findAdminUserIds()) {
+            commands.add(cmd(
+                    adminId,
+                    "Yêu cầu kiểm duyệt mới",
+                    "Có yêu cầu báo cáo vi phạm mới cần xử lý. Lý do: " + e.reason(),
+                    "MODERATION",
+                    "moderation_report",
+                    e.reportId(),
+                    meta
+            ));
+        }
+        return commands;
+    }
+
+    private List<NotificationDispatchCommand> onModerationReportResolved(ModerationReportResolvedEvent e) {
+        var meta = Map.<String, Object>of(
+                "reportId", e.reportId().toString(),
+                "status", e.status());
+        String statusLabel = "resolved".equalsIgnoreCase(e.status()) ? "được chấp nhận" : "bị từ chối";
+        return List.of(cmd(
+                e.reporterId(),
+                "Báo cáo đã xử lý",
+                "Báo cáo vi phạm của bạn đã " + statusLabel + ". Ghi chú: " + nullToEmpty(e.resolutionNote()),
+                "MODERATION",
+                "moderation_report",
+                e.reportId(),
+                meta
+        ));
+    }
+
+    private List<NotificationDispatchCommand> onBookingReviewCreated(BookingReviewCreatedEvent e) {
+        var meta = Map.<String, Object>of(
+                "bookingId", e.bookingId().toString(),
+                "reviewId", e.reviewId().toString());
+        return List.of(cmd(
+                e.mentorId(),
+                "Đánh giá mới từ học viên",
+                "Học viên vừa gửi đánh giá " + e.rating() + " sao: " + nullToEmpty(e.comment()),
+                "REVIEW",
+                "booking_review",
+                e.reviewId(),
+                meta
+        ));
+    }
+
+    private List<NotificationDispatchCommand> onSessionReportRequested(SessionReportRequestedEvent e) {
+        var meta = Map.<String, Object>of(
+                "requestId", e.requestId().toString(),
+                "bookingId", e.bookingId().toString());
+        return List.of(cmd(
+                e.menteeId(),
+                "Yêu cầu nộp báo cáo mới",
+                "Mentor yêu cầu bạn nộp báo cáo: " + e.title(),
+                "REPORT_REQUEST",
+                "report_request",
+                e.requestId(),
+                meta));
+    }
+
+    private List<NotificationDispatchCommand> onSessionReportSubmitted(SessionReportSubmittedEvent e) {
+        var meta = Map.<String, Object>of(
+                "requestId", e.requestId().toString(),
+                "bookingId", e.bookingId().toString());
+        return List.of(cmd(
+                e.mentorId(),
+                "Học viên đã nộp báo cáo",
+                "Học viên đã nộp báo cáo cho yêu cầu: " + e.title() + ". Vào mục chấm báo cáo để xem và duyệt.",
+                "REPORT_REQUEST",
+                "report_request",
+                e.requestId(),
+                meta));
+    }
     private static String nullToEmpty(String s) {
         return s == null ? "" : s;
     }

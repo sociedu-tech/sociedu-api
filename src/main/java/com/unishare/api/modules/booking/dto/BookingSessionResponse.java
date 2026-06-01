@@ -14,6 +14,7 @@ public class BookingSessionResponse {
     private UUID curriculumId;
     private String title;
     private Instant scheduledAt;
+    private Instant scheduledAtEnd;
     private Instant completedAt;
     private String status;
     private String meetingUrl;

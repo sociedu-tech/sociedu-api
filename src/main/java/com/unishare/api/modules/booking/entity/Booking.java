@@ -35,6 +35,9 @@ public class Booking {
     @Column(nullable = false)
     private String status = BookingStatuses.PENDING;
 
+    @Column(name = "progress_percent")
+    private Integer progressPercent;
+
     @Column(name = "created_at")
     private Instant createdAt;
 
