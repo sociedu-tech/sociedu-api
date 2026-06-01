@@ -70,7 +70,7 @@ public class WebSocketChatIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        websocketUrl = "ws://localhost:" + port + "/ws/chat";
+        websocketUrl = "ws://localhost:" + port + "/api/v1/ws";
         stompClient = new WebSocketStompClient(new StandardWebSocketClient());
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 

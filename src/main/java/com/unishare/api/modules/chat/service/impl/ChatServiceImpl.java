@@ -8,6 +8,7 @@ import com.unishare.api.modules.booking.entity.Booking;
 import com.unishare.api.modules.booking.entity.BookingSession;
 import com.unishare.api.modules.booking.repository.BookingRepository;
 import com.unishare.api.modules.booking.repository.BookingSessionRepository;
+import com.unishare.api.infrastructure.realtime.RealtimeTopics;
 import com.unishare.api.modules.chat.dto.*;
 import com.unishare.api.modules.chat.entity.ChatMessage;
 import com.unishare.api.modules.chat.entity.Conversation;
@@ -220,7 +221,7 @@ public class ChatServiceImpl implements ChatService {
                 .serverTimestamp(Instant.now())
                 .payload(response)
                 .build();
-        messagingTemplate.convertAndSend("/topic/conversations/" + conversationId, envelope);
+        messagingTemplate.convertAndSend(RealtimeTopics.conversation(conversationId), envelope);
 
         // Publish domain event for notification system
         if (peerId != null) {

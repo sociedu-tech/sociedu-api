@@ -131,7 +131,7 @@ POST /api/v1/bookings/{id}/sessions/{sid}/evidences  → isAuthenticated()
 ```
 GET  /api/v1/conversations          → isAuthenticated()
 POST /api/v1/conversations/{id}/messages → isAuthenticated()
-WS   /ws/chat                       → isAuthenticated() (JWT in header)
+WS   /api/v1/ws                     → isAuthenticated() (JWT in header)
 ```
 
 ### Module: Dispute

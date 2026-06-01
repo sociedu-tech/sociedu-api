@@ -96,6 +96,17 @@ app:
   order:
     # Thời gian chờ thanh toán sau checkout (khớp VNPay ~15 phút). Ghi đè: APP_ORDER_PAYMENT_EXPIRATION_MINUTES
     payment-expiration-minutes: ${APP_ORDER_PAYMENT_EXPIRATION_MINUTES:15}
+  websocket:
+    # Same host/port as REST — path under /api/v1 (override only if infra requires it)
+    endpoint: ${APP_WS_ENDPOINT:/api/v1/ws}
+    heartbeat-ms: ${APP_WS_HEARTBEAT_MS:10000}
+    broker:
+      # simple = in-memory broker (1 instance). relay = RabbitMQ STOMP (multi-instance horizontal scale).
+      type: ${APP_WS_BROKER_TYPE:simple}
+      relay-host: ${APP_WS_RELAY_HOST:localhost}
+      relay-port: ${APP_WS_RELAY_PORT:61613}
+      relay-login: ${APP_WS_RELAY_LOGIN:guest}
+      relay-passcode: ${APP_WS_RELAY_PASSCODE:guest}
 
 cloudinary:
   cloud-name: ${CLOUDINARY_NAME}

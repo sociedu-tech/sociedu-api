@@ -30,7 +30,7 @@ sequenceDiagram
 ## 2. Thông tin Kết nối & Endpoint
 
 ### Endpoint WebSocket
-- **URL**: `ws://<domain>/ws/chat` hoặc `wss://<domain>/ws/chat` (môi trường Production)
+- **URL**: `{API_BASE}/api/v1/ws` — cùng host/port với REST (`wss://` trên production)
 - **Hỗ trợ kết nối**:
   1. Giao thức WebSocket thuần (Raw WebSocket).
   2. Thư viện SockJS Fallback (cho các trình duyệt hoặc môi trường mạng chặn raw socket).
@@ -125,3 +125,49 @@ Client nên duy trì một máy trạng thái (state machine) cho kết nối We
 - Nếu JWT token hết hạn, backend sẽ từ chối kết nối hoặc ngắt kết nối hiện tại. Khi phát hiện token hết hạn, client cần:
   1. Thực hiện gọi API Refresh Token để lấy Access Token mới.
   2. Sử dụng Access Token mới cấu hình lại connect headers và khởi động kết nối lại WebSocket.
+
+---
+
+## 6. Scale production (multi-instance)
+
+### Broker modes
+
+| `APP_WS_BROKER_TYPE` | Mô tả | Khi nào dùng |
+|---|---|---|
+| `simple` (mặc định) | In-memory broker trong 1 JVM | Dev, staging, 1 pod |
+| `relay` | RabbitMQ STOMP relay | Nhiều instance API phía sau load balancer |
+
+### Biến môi trường (API)
+
+```env
+APP_WS_HEARTBEAT_MS=10000
+APP_WS_BROKER_TYPE=simple          # relay khi scale ngang
+APP_WS_RELAY_HOST=localhost
+APP_WS_RELAY_PORT=61613
+APP_WS_RELAY_LOGIN=guest
+APP_WS_RELAY_PASSCODE=guest
+```
+
+Endpoint STOMP cố định **`/api/v1/ws`** trên cùng host/port với API — không cần biến URL WS riêng.
+
+Khi bật `relay`, cần RabbitMQ có plugin STOMP (port 61613). Mọi instance API publish/subscribe qua cùng relay nên client kết nối tới bất kỳ pod nào vẫn nhận được broadcast.
+
+### Topic naming (đồng bộ client)
+
+Định nghĩa tập trung tại `RealtimeTopics.java` (API) và `src/lib/realtime/topics.ts` (web):
+
+- Chat: `/topic/conversations/{conversationId}`
+- Notification user: `/user/queue/notifications`
+
+### Web client (sociedu-web)
+
+- **Một** kết nối SockJS/STOMP toàn app qua `StompProvider`
+- Subscription notification global: `GlobalRealtimeSubscriptions` → `realtimeEventBus`
+- Chat subscribe động theo conversation qua cùng provider (không mở thêm socket)
+- URL: `{NEXT_PUBLIC_API_BASE_URL}/api/v1/ws`
+
+### Lưu ý triển khai
+
+- Load balancer: bật sticky session **hoặc** dùng `relay` broker (khuyến nghị khi >1 replica)
+- Heartbeat client/server: 10s (khớp `APP_WS_HEARTBEAT_MS`)
+- Mobile (`sociedu-mobile`) vẫn dùng STOMP riêng — topic naming giữ nguyên như trên

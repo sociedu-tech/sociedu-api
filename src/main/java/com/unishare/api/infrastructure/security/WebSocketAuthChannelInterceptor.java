@@ -1,5 +1,6 @@
 package com.unishare.api.infrastructure.security;
 
+import com.unishare.api.infrastructure.realtime.RealtimeTopics;
 import com.unishare.api.modules.chat.repository.ConversationParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +33,8 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
     private final UserDetailsServiceImpl userDetailsService;
     private final ConversationParticipantRepository participantRepository;
 
-    private static final Pattern CONVERSATION_TOPIC_PATTERN = Pattern.compile("^/topic/conversations/([^/]+)$");
-    private static final Pattern USER_NOTIFICATION_TOPIC_PATTERN =
-            Pattern.compile("^/topic/users/([^/]+)/notifications$");
+    private static final Pattern CONVERSATION_TOPIC_PATTERN = RealtimeTopics.CONVERSATION_TOPIC;
+    private static final Pattern USER_NOTIFICATION_TOPIC_PATTERN = RealtimeTopics.USER_NOTIFICATIONS_TOPIC;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {

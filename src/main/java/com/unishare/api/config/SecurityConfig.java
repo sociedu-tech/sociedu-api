@@ -1,5 +1,6 @@
 package com.unishare.api.config;
 
+import com.unishare.api.infrastructure.realtime.RealtimeTopics;
 import com.unishare.api.infrastructure.security.ApiAccessDeniedHandler;
 import com.unishare.api.infrastructure.security.ApiAuthenticationEntryPoint;
 import com.unishare.api.infrastructure.security.JwtAuthenticationFilter;
@@ -60,7 +61,7 @@ public class SecurityConfig {
             "/error",
 
             "/actuator/health",
-            "/ws/chat/**"
+            RealtimeTopics.ENDPOINT + "/**"
     };
 
     @Bean

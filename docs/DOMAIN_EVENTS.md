@@ -56,7 +56,7 @@ Sau khi lưu DB, `NotificationDeliveryService` gọi `StompNotificationRealtimeP
 
 - Topic: `/topic/users/{userId}/notifications`
 - Envelope: `{ eventType: "NEW_NOTIFICATION", payload: NotificationResponse }`
-- Endpoint STOMP: `/ws/chat` (SockJS trên web, raw WebSocket trên mobile)
+- Endpoint STOMP: `/api/v1/ws` (SockJS trên web, raw WebSocket trên mobile)
 - Auth: JWT query `?token=` hoặc header `Authorization: Bearer …` lúc CONNECT
 
 Web dashboard: `NotificationBell` + `useNotificationRealtime` (SockJS).  

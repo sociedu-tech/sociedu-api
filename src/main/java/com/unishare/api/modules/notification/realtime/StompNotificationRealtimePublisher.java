@@ -1,5 +1,6 @@
 package com.unishare.api.modules.notification.realtime;
 
+import com.unishare.api.infrastructure.realtime.RealtimeTopics;
 import com.unishare.api.modules.notification.dto.NotificationEventEnvelope;
 import com.unishare.api.modules.notification.dto.NotificationResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,6 @@ public class StompNotificationRealtimePublisher implements NotificationRealtimeP
                 .serverTimestamp(Instant.now())
                 .payload(notification)
                 .build();
-        messagingTemplate.convertAndSend("/topic/users/" + userId + "/notifications", envelope);
+        messagingTemplate.convertAndSend(RealtimeTopics.userNotifications(userId), envelope);
     }
 }
