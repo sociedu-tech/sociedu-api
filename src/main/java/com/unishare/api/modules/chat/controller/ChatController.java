@@ -95,6 +95,19 @@ public class ChatController {
                 .withData(chatService.listMessages(principal.getUserId(), conversationId)));
     }
 
+    @Operation(summary = "Đánh dấu đã đọc hội thoại")
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping(value = {
+            "/api/v1/chat/conversations/{conversationId}/read",
+            "/api/v1/conversations/{conversationId}/read"
+    })
+    public ResponseEntity<ApiResponse<Void>> markRead(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PathVariable UUID conversationId) {
+        chatService.markConversationRead(principal.getUserId(), conversationId);
+        return ResponseEntity.ok(ApiResponse.<Void>build().withData(null));
+    }
+
     @Operation(summary = "Gửi tin nhắn")
     @PreAuthorize("isAuthenticated()")
     @PostMapping(value = {"/api/v1/chat/conversations/{conversationId}/messages", "/api/v1/conversations/{conversationId}/messages"})

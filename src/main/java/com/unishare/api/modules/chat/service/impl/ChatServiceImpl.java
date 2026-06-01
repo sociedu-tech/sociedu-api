@@ -137,13 +137,14 @@ public class ChatServiceImpl implements ChatService {
         Map<UUID, Conversation> byId = conversationRepository.findAllById(ids).stream()
                 .collect(Collectors.toMap(Conversation::getId, Function.identity()));
         Map<UUID, ChatMessage> lastMessages = loadLastMessagesByConversationIds(ids);
+        Map<UUID, Integer> unreadByConversationId = loadUnreadCountsByConversationIds(ids, userId);
         Set<UUID> peerIds = collectPeerIds(ids, userId);
         Map<UUID, UserProfileNames> namesByUserId = userService.getProfileNamesByUserIds(peerIds);
         Map<UUID, UserProfile> profilesByUserId = loadProfilesByUserIds(peerIds);
         List<ConversationResponse> items = dedupeDirectConversationsByPeer(ids.stream()
                 .map(byId::get)
                 .filter(Objects::nonNull)
-                .map(c -> enrichConversationResponse(c, userId, lastMessages, namesByUserId, profilesByUserId))
+                .map(c -> enrichConversationResponse(c, userId, lastMessages, unreadByConversationId, namesByUserId, profilesByUserId))
                 .toList());
         return PageResponse.<ConversationResponse>builder()
                 .items(items)
@@ -164,11 +165,33 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<ChatMessageResponse> listMessages(UUID userId, UUID conversationId, Pageable pageable) {
         assertParticipant(conversationId, userId);
-        return messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable)
+        Page<ChatMessageResponse> page = messageRepository.findByConversationIdOrderByCreatedAtDesc(conversationId, pageable)
                 .map(this::toMessageResponse);
+        if (pageable.getPageNumber() == 0) {
+            markConversationRead(userId, conversationId);
+        }
+        return page;
+    }
+
+    @Override
+    @Transactional
+    public void markConversationRead(UUID userId, UUID conversationId) {
+        assertParticipant(conversationId, userId);
+        participantRepository.findById_ConversationIdAndId_UserId(conversationId, userId)
+                .ifPresent(participant -> {
+                    Instant readAt = Instant.now();
+                    ChatMessage lastMessage = loadLastMessagesByConversationIds(List.of(conversationId))
+                            .get(conversationId);
+                    if (lastMessage != null && lastMessage.getCreatedAt() != null
+                            && lastMessage.getCreatedAt().isAfter(readAt)) {
+                        readAt = lastMessage.getCreatedAt();
+                    }
+                    participant.setLastReadAt(readAt);
+                    participantRepository.save(participant);
+                });
     }
 
     @Override
@@ -341,16 +364,18 @@ public class ChatServiceImpl implements ChatService {
     private ConversationResponse buildConversationResponse(Conversation c, UUID viewerUserId) {
         List<UUID> ids = List.of(c.getId());
         Map<UUID, ChatMessage> lastMessages = loadLastMessagesByConversationIds(ids);
+        Map<UUID, Integer> unreadByConversationId = loadUnreadCountsByConversationIds(ids, viewerUserId);
         Set<UUID> peerIds = collectPeerIds(ids, viewerUserId);
         Map<UUID, UserProfileNames> namesByUserId = userService.getProfileNamesByUserIds(peerIds);
         Map<UUID, UserProfile> profilesByUserId = loadProfilesByUserIds(peerIds);
-        return enrichConversationResponse(c, viewerUserId, lastMessages, namesByUserId, profilesByUserId);
+        return enrichConversationResponse(c, viewerUserId, lastMessages, unreadByConversationId, namesByUserId, profilesByUserId);
     }
 
     private ConversationResponse enrichConversationResponse(
             Conversation c,
             UUID viewerUserId,
             Map<UUID, ChatMessage> lastMessageByConversationId,
+            Map<UUID, Integer> unreadByConversationId,
             Map<UUID, UserProfileNames> namesByUserId,
             Map<UUID, UserProfile> profilesByUserId) {
         ChatMessage lastMessage = lastMessageByConversationId.get(c.getId());
@@ -390,6 +415,7 @@ public class ChatServiceImpl implements ChatService {
                 .peerAvatarFileId(peerProfile != null ? peerProfile.getAvatarFileId() : null)
                 .lastMessageContent(lastMessage != null ? lastMessage.getContent() : null)
                 .lastMessageAt(lastMessage != null ? lastMessage.getCreatedAt() : null)
+                .unreadCount(unreadByConversationId.getOrDefault(c.getId(), 0))
                 .build();
     }
 
@@ -414,6 +440,22 @@ public class ChatServiceImpl implements ChatService {
         String id = userId.toString().replace("-", "");
         String shortId = id.length() <= 8 ? id : id.substring(0, 8);
         return "Người dùng #" + shortId;
+    }
+
+    private Map<UUID, Integer> loadUnreadCountsByConversationIds(Collection<UUID> conversationIds, UUID userId) {
+        if (conversationIds == null || conversationIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, Integer> counts = new LinkedHashMap<>();
+        for (UUID conversationId : conversationIds) {
+            counts.put(conversationId, 0);
+        }
+        for (Object[] row : messageRepository.countUnreadByConversationIdsForUser(conversationIds, userId)) {
+            UUID conversationId = (UUID) row[0];
+            Number count = (Number) row[1];
+            counts.put(conversationId, count != null ? count.intValue() : 0);
+        }
+        return counts;
     }
 
     private Map<UUID, ChatMessage> loadLastMessagesByConversationIds(Collection<UUID> conversationIds) {

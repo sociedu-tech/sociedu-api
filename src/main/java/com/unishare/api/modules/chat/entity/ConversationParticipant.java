@@ -20,6 +20,9 @@ public class ConversationParticipant {
     @Column(name = "joined_at")
     private Instant joinedAt;
 
+    @Column(name = "last_read_at")
+    private Instant lastReadAt;
+
     @PrePersist
     public void prePersist() {
         if (joinedAt == null) {

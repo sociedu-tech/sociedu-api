@@ -19,4 +19,6 @@ public class ConversationResponse {
     private UUID peerAvatarFileId;
     private String lastMessageContent;
     private Instant lastMessageAt;
+    /** Số tin nhắn từ người khác chưa đọc (sau lastReadAt). */
+    private Integer unreadCount;
 }

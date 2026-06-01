@@ -8,8 +8,8 @@ import java.util.UUID;
 
 public interface BookingService {
 
-    /** Gọi sau khi order chuyển paid — idempotent. */
-    void ensureBookingForOrder(UUID orderId);
+    /** @return {@code true} nếu booking mới được tạo trong lần gọi này. */
+    boolean ensureBookingForOrder(UUID orderId);
 
     PageResponse<BookingResponse> listForBuyer(UUID buyerId, Pageable pageable);
 

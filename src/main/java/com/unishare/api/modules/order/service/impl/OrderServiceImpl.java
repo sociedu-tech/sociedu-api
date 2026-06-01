@@ -4,7 +4,6 @@ import com.unishare.api.common.constants.OrderStatuses;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
 import com.unishare.api.common.event.OrderCheckoutCreatedEvent;
-import com.unishare.api.common.event.OrderPaidEvent;
 import com.unishare.api.common.event.OrderPaymentFailedEvent;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.modules.order.dto.CheckoutRequest;
@@ -163,11 +162,12 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void applyPaymentResult(UUID orderId, boolean success) {
+    public boolean applyPaymentResult(UUID orderId, boolean success) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new AppException(OrderErrorCode.ORDER_NOT_FOUND));
         if (OrderStatuses.PAID.equals(order.getStatus()) || OrderStatuses.REFUNDED.equals(order.getStatus())) {
-            return;
+            log.info("applyPaymentResult skipped orderId={} status={} (already settled)", orderId, order.getStatus());
+            return false;
         }
         if (success) {
             order.setStatus(OrderStatuses.PAID);
@@ -177,11 +177,11 @@ public class OrderServiceImpl implements OrderService {
         }
         orderRepository.save(order);
         if (success) {
-            var purchaseCtx = catalogReadService.resolvePurchaseContext(order.getServiceId());
-            eventPublisher.publish(new OrderPaidEvent(orderId, order.getBuyerId(), purchaseCtx.mentorId()));
-        } else {
-            eventPublisher.publish(new OrderPaymentFailedEvent(orderId, order.getBuyerId()));
+            log.info("applyPaymentResult marked orderId={} as paid", orderId);
+            return true;
         }
+        eventPublisher.publish(new OrderPaymentFailedEvent(orderId, order.getBuyerId()));
+        return false;
     }
 
     private void expireStaleOrders(UUID buyerId) {

@@ -127,14 +127,6 @@ public class DomainNotificationHandler {
                         "ORDER",
                         "order",
                         e.orderId(),
-                        meta),
-                cmd(
-                        e.mentorId(),
-                        "Học viên đã thanh toán",
-                        "Học viên vừa thanh toán đơn hàng. Booking mentoring sẽ được kích hoạt trong giây lát.",
-                        "ORDER",
-                        "order",
-                        e.orderId(),
                         meta));
     }
 
@@ -154,7 +146,22 @@ public class DomainNotificationHandler {
                 "bookingId", e.bookingId().toString(),
                 "orderId", e.orderId().toString());
         return List.of(
-                cmd(e.buyerId(), "Lịch học đã sẵn sàng", "Gói đã kích hoạt — xem buổi học và lịch trong mục Phiên học.", "BOOKING", "booking", e.bookingId(), meta));
+                cmd(
+                        e.buyerId(),
+                        "Lịch học đã sẵn sàng",
+                        "Gói đã kích hoạt — xem buổi học và lịch trong mục Phiên học.",
+                        "BOOKING",
+                        "booking",
+                        e.bookingId(),
+                        meta),
+                cmd(
+                        e.mentorId(),
+                        "Học viên đã thanh toán",
+                        "Học viên vừa thanh toán và booking mentoring mới đã được kích hoạt. Kiểm tra lịch dạy và học viên.",
+                        "BOOKING",
+                        "booking",
+                        e.bookingId(),
+                        meta));
     }
 
     private List<NotificationDispatchCommand> onBookingCompleted(BookingCompletedEvent e) {

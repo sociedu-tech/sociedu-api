@@ -29,7 +29,7 @@ public class DomainMailEventListener {
     private final UserRepository userRepository;
     private final DomainEventPublisher eventPublisher;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onOrderPaid(OrderPaidEvent event) {
         userRepository.findById(event.buyerId())
                 .map(u -> u.getEmail())
@@ -39,7 +39,7 @@ public class DomainMailEventListener {
                         () -> log.warn("[Mail] OrderPaid: no email for buyerId={}", event.buyerId()));
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onOrderPaymentFailed(OrderPaymentFailedEvent event) {
         userRepository.findById(event.buyerId())
                 .map(u -> u.getEmail())
@@ -50,7 +50,7 @@ public class DomainMailEventListener {
                         () -> log.warn("[Mail] PaymentFailed: no email for buyerId={}", event.buyerId()));
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onBookingCreated(BookingCreatedEvent event) {
         String buyerEmail = userRepository.findById(event.buyerId())
                 .map(u -> u.getEmail())

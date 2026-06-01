@@ -24,4 +24,6 @@ public interface ChatService {
     Page<ChatMessageResponse> listMessages(UUID userId, UUID conversationId, Pageable pageable);
 
     ChatMessageResponse sendMessage(UUID userId, UUID conversationId, SendMessageRequest request);
+
+    void markConversationRead(UUID userId, UUID conversationId);
 }

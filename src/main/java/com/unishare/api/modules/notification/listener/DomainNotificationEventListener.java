@@ -20,7 +20,7 @@ public class DomainNotificationEventListener {
     private final DomainNotificationHandler notificationHandler;
     private final NotificationDeliveryService deliveryService;
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     public void onDomainEvent(DomainEvent event) {
         if (!notificationHandler.supports(event)) {
             return;
@@ -29,7 +29,7 @@ public class DomainNotificationEventListener {
             var commands = notificationHandler.resolve(event);
             if (!commands.isEmpty()) {
                 deliveryService.deliverAll(commands);
-                log.debug("Delivered {} notification(s) for {}", commands.size(), event.eventType());
+                log.info("Delivered {} notification(s) for {}", commands.size(), event.eventType());
             }
         } catch (Exception e) {
             log.error("Failed to deliver notifications for event type={}", event.eventType(), e);

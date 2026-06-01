@@ -24,5 +24,6 @@ public interface OrderService {
 
     OrderSnapshot getOrderSnapshot(UUID orderId);
 
-    void applyPaymentResult(UUID orderId, boolean success);
+    /** @return {@code true} nếu đơn vừa chuyển sang {@code paid} trong lần gọi này. */
+    boolean applyPaymentResult(UUID orderId, boolean success);
 }

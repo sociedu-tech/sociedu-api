@@ -38,24 +38,24 @@ class DomainNotificationHandlerTest {
     }
 
     @Test
-    void resolve_orderPaid_notifiesBuyerAndMentor() {
+    void resolve_orderPaid_notifiesBuyerOnly() {
         UUID orderId = UUID.randomUUID();
         UUID buyerId = UUID.randomUUID();
         UUID mentorId = UUID.randomUUID();
         var commands = handler.resolve(new OrderPaidEvent(orderId, buyerId, mentorId));
-        assertEquals(2, commands.size());
+        assertEquals(1, commands.size());
         assertTrue(commands.stream().anyMatch(c -> c.userId().equals(buyerId)));
-        assertTrue(commands.stream().anyMatch(c -> c.userId().equals(mentorId)));
+        assertFalse(commands.stream().anyMatch(c -> c.userId().equals(mentorId)));
     }
 
     @Test
-    void resolve_bookingCreated_notifiesBuyerOnly() {
+    void resolve_bookingCreated_notifiesBuyerAndMentor() {
         UUID bookingId = UUID.randomUUID();
         UUID buyerId = UUID.randomUUID();
         UUID mentorId = UUID.randomUUID();
         var commands = handler.resolve(new BookingCreatedEvent(bookingId, UUID.randomUUID(), buyerId, mentorId));
-        assertEquals(1, commands.size());
+        assertEquals(2, commands.size());
         assertTrue(commands.stream().anyMatch(c -> c.userId().equals(buyerId)));
-        assertFalse(commands.stream().anyMatch(c -> c.userId().equals(mentorId)));
+        assertTrue(commands.stream().anyMatch(c -> c.userId().equals(mentorId)));
     }
 }

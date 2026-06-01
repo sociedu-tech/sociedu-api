@@ -92,7 +92,7 @@ class VNPayServiceImplTest {
     }
 
     @Test
-    void handleVNPayCallback_ShouldReturnExistingResultForDuplicateCallback() {
+    void handleVNPayCallback_ShouldReconcileDuplicateSuccessCallback() {
         UUID orderId = UUID.randomUUID();
         String txnRef = orderId + "_123";
         PaymentTransaction txn = pendingTransaction(UUID.randomUUID(), orderId, txnRef, new BigDecimal("120000.00"));
@@ -103,7 +103,7 @@ class VNPayServiceImplTest {
 
         assertTrue(success);
         verify(paymentTransactionRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
+        verify(eventPublisher).publish(any(PaymentProcessedEvent.class));
     }
 
     @Test

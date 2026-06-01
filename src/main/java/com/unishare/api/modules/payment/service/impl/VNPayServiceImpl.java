@@ -112,6 +112,10 @@ public class VNPayServiceImpl implements PaymentService {
 
         if (!PaymentTransactionStatuses.PENDING.equals(txn.getStatus())) {
             log.info("VNPay callback: transaction {} already processed as {}", txnRef, txn.getStatus());
+            if (PaymentTransactionStatuses.SUCCESS.equals(txn.getStatus())) {
+                // Khôi phục cập nhật đơn / notification nếu lần trước applyPaymentResult chưa chạy xong.
+                publishPaymentProcessed(txn, true);
+            }
             return PaymentTransactionStatuses.SUCCESS.equals(txn.getStatus());
         }
 

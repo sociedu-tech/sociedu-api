@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -58,7 +59,7 @@ public class OrderController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getMyOrders(
             @AuthenticationPrincipal CustomUserPrincipal principal,
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.<PageResponse<OrderResponse>>build()
                 .withData(orderService.getMyOrders(principal.getUserId(), pageable)));
     }
@@ -68,7 +69,7 @@ public class OrderController {
     @GetMapping("/me/incoming")
     public ResponseEntity<ApiResponse<PageResponse<OrderResponse>>> getIncomingOrders(
             @AuthenticationPrincipal CustomUserPrincipal principal,
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.<PageResponse<OrderResponse>>build()
                 .withData(orderService.getIncomingOrdersForMentor(principal.getUserId(), pageable)));
     }

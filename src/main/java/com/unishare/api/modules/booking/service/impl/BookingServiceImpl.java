@@ -5,8 +5,6 @@ import com.unishare.api.common.constants.OrderStatuses;
 import com.unishare.api.common.constants.SessionStatuses;
 import com.unishare.api.common.dto.AppException;
 import com.unishare.api.common.dto.PageResponse;
-import com.unishare.api.common.event.BookingCreatedEvent;
-import com.unishare.api.common.event.DomainEvent;
 import com.unishare.api.infrastructure.event.DomainEventPublisher;
 import com.unishare.api.modules.booking.dto.*;
 import com.unishare.api.modules.booking.entity.Booking;
@@ -27,11 +25,10 @@ import com.unishare.api.modules.order.service.OrderService;
 import com.unishare.api.modules.service.dto.PackageCurriculumSeedItem;
 import com.unishare.api.modules.service.service.CatalogReadService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -43,6 +40,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookingServiceImpl implements BookingService {
 
     private static final List<String> UPCOMING_SESSION_STATUSES = List.of(
@@ -62,13 +60,15 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
-    public void ensureBookingForOrder(UUID orderId) {
+    public boolean ensureBookingForOrder(UUID orderId) {
         OrderSnapshot snap = orderService.getOrderSnapshot(orderId);
         if (!OrderStatuses.PAID.equals(snap.status())) {
-            return;
+            log.info("ensureBookingForOrder skipped orderId={} — order status={}", orderId, snap.status());
+            return false;
         }
         if (bookingRepository.findByOrderId(orderId).isPresent()) {
-            return;
+            log.info("ensureBookingForOrder skipped orderId={} — booking already exists", orderId);
+            return false;
         }
         var ctx = catalogReadService.resolvePurchaseContext(snap.serviceId());
         Booking b = new Booking();
@@ -78,32 +78,21 @@ public class BookingServiceImpl implements BookingService {
         b.setPackageId(ctx.packageId());
         b.setStatus(BookingStatuses.SCHEDULED);
         b = bookingRepository.save(b);
-        seedSessions(b.getId(), snap.serviceId());
-        publishAfterCommit(new BookingCreatedEvent(b.getId(), orderId, b.getBuyerId(), b.getMentorId()));
+        seedSessions(b, snap.serviceId());
+        log.info("ensureBookingForOrder created bookingId={} orderId={}", b.getId(), orderId);
+        return true;
     }
 
-    private void publishAfterCommit(DomainEvent event) {
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    eventPublisher.publish(event);
-                }
-            });
-        } else {
-            eventPublisher.publish(event);
-        }
-    }
-
-    private void seedSessions(UUID bookingId, UUID versionId) {
+    private void seedSessions(Booking booking, UUID versionId) {
+        Instant bookedAt = booking.getCreatedAt() != null ? booking.getCreatedAt() : Instant.now();
         List<PackageCurriculumSeedItem> rows = catalogReadService.listCurriculumForVersionOrdered(versionId);
         int i = 0;
         for (PackageCurriculumSeedItem c : rows) {
             BookingSession s = new BookingSession();
-            s.setBookingId(bookingId);
+            s.setBookingId(booking.getId());
             s.setCurriculumId(c.id());
             s.setTitle(c.title());
-            s.setScheduledAt(Instant.now().plus(Duration.ofDays(i + 1L)));
+            s.setScheduledAt(bookedAt.plus(Duration.ofDays(i + 1L)));
             s.setStatus(SessionStatuses.SCHEDULED);
             sessionRepository.save(s);
             i++;

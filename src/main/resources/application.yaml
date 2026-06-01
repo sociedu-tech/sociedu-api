@@ -14,13 +14,13 @@ spring:
         options: "-c TimeZone=UTC"
 
   flyway:
-    enabled: ${FLYWAY_ENABLED:false} # dev: tắt vì đang dùng Hibernate ddl-auto. Bật lại khi sang Sprint hardening
+    enabled: ${FLYWAY_ENABLED:true} # dev: tắt vì đang dùng Hibernate ddl-auto. Bật lại khi sang Sprint hardening
     locations: classpath:db/migration
     baseline-on-migrate: true
 
   jpa:
     hibernate:
-      ddl-auto: ${HIBERNATE_DDL_AUTO:update} # local embedded: create-drop. DB remote/shared: đặt update trong .env
+      ddl-auto: ${HIBERNATE_DDL_AUTO:validate} # local embedded: create-drop. DB remote/shared: đặt update trong .env
     defer-datasource-initialization: true # đảm bảo data.sql/schema.sql ở classpath chạy SAU khi Hibernate dựng xong schema
     properties:
       hibernate:

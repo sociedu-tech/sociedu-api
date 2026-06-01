@@ -13,11 +13,14 @@ import com.unishare.api.modules.notification.repository.NotificationRepository;
 import com.unishare.api.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,6 +37,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final DeviceTokenRepository deviceTokenRepository;
+    private final ApplicationContext applicationContext;
 
     @Override
     @Transactional(readOnly = true)
@@ -100,7 +104,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public NotificationResponse createNotification(UUID userId, String title, String content, String type, String referenceType, UUID referenceId, Map<String, Object> metadata) {
         Notification notification = new Notification();
         notification.setUserId(userId);
@@ -111,19 +115,25 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setReferenceId(referenceId);
         notification.setMetadata(metadata);
         notification = notificationRepository.save(notification);
+        UUID notificationId = notification.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                applicationContext.getBean(NotificationService.class).sendPushNotificationAsync(notificationId);
+            }
+        });
         return mapToResponse(notification);
     }
 
     @Override
-    @Async
-    @Transactional
+    @Async("taskExecutor")
     public void sendPushNotificationAsync(UUID notificationId) {
-        log.info("Starting async push delivery for notification ID: {}", notificationId);
-        Notification notification = notificationRepository.findById(notificationId).orElse(null);
+        Notification notification = findNotificationWithRetry(notificationId, 3);
         if (notification == null) {
             log.warn("Notification not found for async push delivery: {}", notificationId);
             return;
         }
+        log.info("Starting async push delivery for notification ID: {}", notificationId);
 
         List<DeviceToken> tokens = deviceTokenRepository.findByUserId(notification.getUserId());
         if (tokens.isEmpty()) {
@@ -145,6 +155,24 @@ public class NotificationServiceImpl implements NotificationService {
             notification.setPushStatus("FAILED");
         }
         notificationRepository.save(notification);
+    }
+
+    private Notification findNotificationWithRetry(UUID notificationId, int attempts) {
+        for (int i = 0; i < attempts; i++) {
+            Notification notification = notificationRepository.findById(notificationId).orElse(null);
+            if (notification != null) {
+                return notification;
+            }
+            if (i + 1 < attempts) {
+                try {
+                    Thread.sleep(50L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        return null;
     }
 
     private NotificationResponse mapToResponse(Notification notification) {
